@@ -1,0 +1,16 @@
+[project]
+name = "bibtidy"
+version = "1.0.1"
+description = "Claude Code plugin that validates and fixes BibTeX files"
+requires-python = ">=3.10"
+license = "MIT"
+
+[dependency-groups]
+dev = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+    "plugins/bibtidy/skills/bibtidy/tools",
+    "tests",
+]

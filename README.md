@@ -10,24 +10,19 @@ From the plugin marketplace:
 /plugin install bibtidy@bibtidy
 ```
 
-Or manually:
-```bash
-cp -r plugins/bibtidy/skills/bibtidy ~/.claude/skills/
-```
-
 ## Usage
 
 ```
 /bibtidy refs.bib
 ```
 
-bibtidy searches Google Scholar and CrossRef for each entry, fixes errors, and upgrades stale preprints to published versions. Non-trivial changes (wrong authors, venue, year, preprint upgrades) include the original entry commented out above so you can compare or revert; minor formatting fixes (page hyphens, DOI prefixes) are applied silently. We recommend using git to track changes.
+bibtidy searches Google Scholar and CrossRef for each entry, fixes errors, and upgrades stale preprints to published versions. Google Scholar is accessed via the WebSearch tool when available; CrossRef is always available via the bundled script. Every change — whether a page hyphen fix or a preprint upgrade — includes the original entry commented out above so you can compare or revert, plus a `% bibtidy: source` URL for verification. We recommend using git to track changes.
 
 To remove bibtidy comments after review, just ask Claude: "remove all bibtidy comments from refs.bib"
 
 ## Examples
 
-**Example 1**: Google Scholar adds editors as co-authors.
+**Example 1**: Google Scholar adds editors as co-authors. ([source](https://scholar.googleusercontent.com/scholar.bib?q=info:Rt8ZJ9wqQacJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0EKWmm3JEMfU:ADi0EEUAAAAAab9CKfWxrzWAi-uVwDbMLutl1_s&scisig=ADi0EEUAAAAAab9CKVjijw6BW7-dGJr1fECB9uQ&scisf=4&ct=citation&cd=-1&hl=en))
 
 Before:
 ```bibtex
@@ -63,7 +58,7 @@ After:
 }
 ```
 
-**Example 2**: arXiv preprint upgraded to published version.
+**Example 2**: arXiv preprint upgraded to published version. ([source](https://scholar.googleusercontent.com/scholar.bib?q=info:sCeCG7MKl-EJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0EKWmm3JEcQ8:ADi0EEUAAAAAab9CaQ_kXDvxa7JtfZRV_Nw4PHA&scisig=ADi0EEUAAAAAab9CaYN4q4ZlyBKVAwVYN49_U9k&scisf=4&ct=citation&cd=-1&hl=en))
 
 Before:
 ```bibtex
@@ -93,7 +88,7 @@ After:
 }
 ```
 
-**Example 3**: arXiv preprint upgraded to published version with title change.
+**Example 3**: arXiv preprint upgraded to published version with title change. ([source](https://arxiv.org/abs/2211.03364v7))
 
 Before:
 ```bibtex
@@ -124,7 +119,40 @@ After:
 }
 ```
 
-**Example 4**: bioRxiv preprint duplicated with published version.
+**Example 4**: Wrong page numbers corrected via CrossRef. ([source](https://scholar.googleusercontent.com/scholar.bib?q=info:IrnONgPsYfIJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0ENylm3JE4bI:ADi0EEUAAAAAab9C+bLnAvK8D-XbsBF71_Icwng&scisig=ADi0EEUAAAAAab9C+TOLh0TDAOTbklme_5Hngoc&scisf=4&ct=citation&cd=-1&hl=en))
+
+Before:
+```bibtex
+@inproceedings{strudel2021segmenter,
+  title={Segmenter: Transformer for semantic segmentation},
+  author={Strudel, Robin and Garcia, Ricardo and Laptev, Ivan and Schmid, Cordelia},
+  booktitle={Proceedings of the IEEE/CVF international conference on computer vision},
+  pages={7262--7272},
+  year={2021}
+}
+```
+
+After:
+```bibtex
+% @inproceedings{strudel2021segmenter,
+%   title={Segmenter: Transformer for semantic segmentation},
+%   author={Strudel, Robin and Garcia, Ricardo and Laptev, Ivan and Schmid, Cordelia},
+%   booktitle={Proceedings of the IEEE/CVF international conference on computer vision},
+%   pages={7262--7272},
+%   year={2021}
+% }
+% bibtidy: source https://doi.org/10.1109/iccv48922.2021.00717
+% bibtidy: corrected page range 7262--7272 → 7242--7252
+@inproceedings{strudel2021segmenter,
+  title={Segmenter: Transformer for semantic segmentation},
+  author={Strudel, Robin and Garcia, Ricardo and Laptev, Ivan and Schmid, Cordelia},
+  booktitle={Proceedings of the IEEE/CVF international conference on computer vision},
+  pages={7242--7252},
+  year={2021}
+}
+```
+
+**Example 5**: bioRxiv preprint duplicated with published version.
 
 Before:
 ```bibtex

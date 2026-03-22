@@ -14,7 +14,23 @@ bibtidy/
 │       │   └── plugin.json     ← plugin manifest
 │       └── skills/
 │           └── bibtidy/
-│               └── SKILL.md    ← the skill
+│               ├── SKILL.md    ← the skill
+│               └── tools/
+│                   ├── crossref.py    ← CrossRef API client
+│                   ├── duplicates.py  ← duplicate detector
+│                   └── fmt.py         ← output format validator
+├── tests/
+│   ├── fixtures/
+│   │   ├── input.bib           ← test input
+│   │   └── expected.bib        ← expected output
+│   ├── run.sh                  ← end-to-end test runner
+│   ├── validate.py             ← structural validation
+│   ├── conftest.py             ← pytest path setup
+│   ├── test_crossref.py        ← unit tests for crossref.py
+│   ├── test_duplicates.py      ← unit tests for duplicates.py
+│   ├── test_fmt.py             ← unit tests for fmt.py
+│   └── test_validate.py        ← unit tests for validate.py
+├── pyproject.toml              ← project config and pytest settings
 ├── CLAUDE.md
 ├── LICENSE
 └── README.md
@@ -22,4 +38,4 @@ bibtidy/
 
 ## How it works
 
-The skill is invoked via `/bibtidy refs.bib`. Claude reads the .bib file, verifies each entry against Google Scholar and CrossRef (using WebSearch/WebFetch if available, falling back to `curl` via Bash), fixes errors using targeted Edit tool replacements, and adds source URL comments.
+The skill is invoked via `/bibtidy refs.bib`. Claude reads the .bib file, dispatches parallel subagents to verify entries against Google Scholar (WebSearch) and CrossRef (bundled `crossref.py`), then applies fixes sequentially using targeted Edit tool replacements. Every change includes the original entry commented out and a source URL for verification.

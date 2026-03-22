@@ -1,125 +1,152 @@
 ---
 name: bibtidy
-description: Use when the user wants to validate, check, or fix a BibTeX (.bib) reference file — verifies each entry against Google Scholar and CrossRef, fixes metadata errors, detects arXiv/bioRxiv preprints with published versions, and adds source URLs as comments
+description: Use when the user wants to validate, check, or fix a BibTeX (.bib) reference file — wrong authors, stale arXiv preprints, incorrect metadata, duplicate entries, formatting issues
 ---
 
 Validate and fix the BibTeX file at: $ARGUMENTS
 
+If `$ARGUMENTS` is empty or the file does not exist, tell the user:
+"Usage: /bibtidy <path-to-file.bib>"
+
 You are a meticulous academic reference checker. Process the .bib file entry by entry, verifying each against external sources and fixing errors in-place.
 
-## Tools
+## Quick Reference
 
-This skill requires web access. Use whichever tools are available:
-- **Preferred**: WebSearch and WebFetch (if available via MCP or built-in)
-- **Fallback**: If WebSearch or WebFetch are not available, use the Bash tool with `curl`. For example:
-  - Search: `curl -s "https://api.crossref.org/works?query=<title>&rows=3&mailto=bibtidy@users.noreply.github.com"`
-  - Fetch DOI metadata: `curl -s "https://api.crossref.org/works/<DOI>?mailto=bibtidy@users.noreply.github.com"`
-  - Google Scholar is not accessible via curl (blocked by captcha). Use CrossRef as the primary source when WebSearch is unavailable.
+| Tool | Command |
+|------|---------|
+| CrossRef DOI lookup | `python3 $TOOLS_DIR/crossref.py doi <DOI>` |
+| CrossRef title search | `python3 $TOOLS_DIR/crossref.py search "<title>"` |
+| Duplicate detection | `python3 $TOOLS_DIR/duplicates.py <file.bib>` |
+| Format validation | `python3 $TOOLS_DIR/fmt.py <orig.bib> <modified.bib>` |
+| Web verification | WebSearch tool (preferred) or CrossRef scripts (fallback) |
+
+## Script Path Resolution
+
+All bundled tools live in the `tools/` directory next to this SKILL.md. Before running any tool, resolve the absolute path once:
+
+```
+TOOLS_DIR="$HOME/.claude/skills/bibtidy/tools"
+if [ ! -f "$TOOLS_DIR/crossref.py" ]; then
+  echo "Error: bibtidy tools not found. Reinstall the skill." >&2
+  exit 1
+fi
+```
+
+Use `$TOOLS_DIR` in every invocation.
+
+## Output Format for Changed Entries
+
+The Edit tool replacement text MUST contain all four parts in order:
+
+```
+% @<type>{<key>,
+%   <original field 1>,
+%   <original field 2>,
+%   ...
+% }
+% bibtidy: source <URL>
+% bibtidy: <what changed>
+@<type>{<key>,
+  <corrected field 1>,
+  <corrected field 2>,
+  ...
+}
+```
+
+- **Part 1** — entire original entry, every line prefixed by `% `. All lines, not just the first.
+- **Part 2** — `% bibtidy: source ` followed by a URL. Must be exactly `% bibtidy: source https://...`.
+- **Part 3** — `% bibtidy: ` followed by explanation of what changed.
+- **Part 4** — corrected entry.
+
+For unchanged entries, do NOT add any comments or URLs.
 
 ## Workflow
 
-1. Read the entire .bib file
-2. Skip `@string`, `@preamble`, `@comment` blocks — preserve them verbatim
-3. Check for duplicates — for files with more than 15 entries, write and run a temporary Python script (via Bash) to detect duplicates rather than evaluating in-context (see Duplicate Detection below)
-4. For each entry, run the per-entry checks below
-5. Apply fixes using the Edit tool for targeted replacements — do NOT rewrite the entire file at once (see Saving Changes below)
+1. Read the .bib file, note the file path
+2. Back up for format validation: `cp <file>.bib <file>.bib.orig`
+3. Preserve `@string`, `@preamble`, `@comment` blocks verbatim
+4. Run duplicate detection
+5. **Verify entries in parallel** — dispatch subagents to look up entries concurrently (see below)
+6. Apply fixes **sequentially** via Edit tool — do NOT rewrite the entire file
+7. Run format validation; fix violations and re-run until clean
+8. Delete backup: `rm <file>.bib.orig`
+9. Print summary: total entries, verified, fixed, needs manual review
 
-## Duplicate Detection
+## Parallel Verification with Subagents
 
-Before per-entry checks, scan the entire file for duplicates:
-- **Same key** — exact duplicate keys
-- **Same DOI** — different keys but same DOI field
-- **Same title** — different keys but titles match (ignoring case, braces, punctuation)
-- **Preprint + published** — an arXiv/bioRxiv entry and a published version of the same paper (e.g. `watson2022broadly` on bioRxiv and `watson2023novo` in Nature)
+Use the Agent tool to verify multiple entries concurrently. This dramatically reduces wall-clock time (e.g., 7 entries: ~1 min parallel vs ~5 min sequential; 100 entries: ~3 min vs ~40 min).
 
-Flag each duplicate with: `% bibtidy: DUPLICATE of <other_key> — consider removing`
+**Step 1 — Dispatch lookup agents:** For each entry (or batch of entries), launch a subagent that:
+- Resolves `$TOOLS_DIR` (same command as above)
+- Runs CrossRef lookup (`crossref.py doi` or `crossref.py search`)
+- Optionally runs WebSearch for verification
+- Returns a JSON summary: key, whether entry needs changes, what changed, source URL
 
-For files with more than 15 entries, write a temporary Python script that parses the .bib file and outputs duplicate pairs (by DOI, normalized title, or preprint/published match) instead of doing this comparison in-context. Run the script via Bash and use its output to add duplicate comments.
+Launch all agents in a single message so they run concurrently. Group into batches of ~10 if there are many entries.
 
-## Per-Entry Checks
+**Step 2 — Collect results:** Read each agent's returned summary.
 
-For each `@article`, `@inproceedings`, `@book`, etc. entry:
+**Step 3 — Apply edits sequentially:** Using the lookup results, apply Edit tool changes one entry at a time. Edits MUST be sequential (parallel edits to the same file cause conflicts).
 
-### 1. Verify existence
-
-Use WebSearch: `"<title>" <first author last name>`
-
-From the search results, identify the published venue, year, DOI, and pages. Look for results from scholar.google.com, openreview.net, arxiv.org, biorxiv.org, chemrxiv.org, or conference proceedings sites.
-
-If not found, flag with a comment: `% bibtidy: NOT FOUND — verify manually`
-
-### 2. Cross-check metadata
-
-If the entry has a DOI, or you found one in step 1, **prioritize CrossRef** as the authoritative source:
-- Fetch `https://api.crossref.org/works/<DOI>?mailto=bibtidy@users.noreply.github.com` (use WebFetch if available, otherwise `curl -s` via Bash)
-- Compare: title, year, authors, journal/venue, volume, pages
-
-If no DOI, use search results from step 1 (Google Scholar, OpenReview, proceedings sites).
-
-### 3. Apply formatting fixes silently
-
-These do not need comments or commented-out originals:
-- DOI URL prefix stripping
-- Page range hyphen fix (`-` to `--`)
-- Year whitespace stripping
-- Empty field removal
-
-### 4. Check for published versions of preprints
-
-If the journal/venue contains "arxiv", "biorxiv", or "chemrxiv" (case-insensitive):
-- Search for the title on CrossRef or conference proceedings
-- If a peer-reviewed version exists (different venue, has DOI), update the entry:
-  - Update the title to match the published version (it may differ from the preprint title)
-  - Update venue, year, volume, pages, and entry type as needed
-- Only update if confirmed via DOI or two independent sources agreeing
-
-### 5. Apply metadata fixes with commented-out originals
-
-For non-trivial changes (author, year, venue, pages, preprint upgrades):
-- Auto-apply when the title is clearly the same paper AND at least one of:
-  - CrossRef DOI metadata confirms the change, OR
-  - Two independent authoritative sources agree (CrossRef, OpenReview, DBLP, ACL Anthology, publisher sites, conference proceedings)
-- If sources conflict, data is incomplete, or only one non-DOI source is available, add a `% bibtidy: REVIEW` comment instead of changing the field
-- Comment out the entire original entry with `%`, then add `% bibtidy:` comments (source URL + explanation), then the corrected entry.
-- **Every non-trivial change MUST include a `% bibtidy: source <URL>` line** with a DOI link (e.g. `https://doi.org/...`), OpenReview link, or other authoritative URL. Never omit the source URL — it is the evidence for the change.
-- **The `% bibtidy:` explanation comments must accurately describe all changes** actually made to the entry (title, venue, year, pages, type, etc.). Do not say "updated to X" if the output shows Y.
-
+**Example agent prompt:**
 ```
-% @article{key,
-%   title={Old Title},
-%   author={Old Author},
-%   year={2019}
-% }
-% bibtidy: source https://doi.org/...
-% bibtidy: year changed to 2020 (crossref)
-@article{key,
-  title={Old Title},
-  author={Old Author},
+Verify this BibTeX entry against CrossRef. Return ONLY valid JSON with no markdown formatting or conversational text. Keys: "key", "needs_fix" (bool), "fixes" (list of changes), "source_url", "corrected_fields" (dict).
+
+TOOLS_DIR="$(dirname "$(find ~/.claude -path '*/skills/bibtidy/tools/crossref.py' -print -quit 2>/dev/null)")"
+
+Entry:
+@article{smith2020deep,
+  title={Deep Learning for NLP},
+  author={Smith, John},
+  journal={arXiv preprint arXiv:2001.12345},
   year={2020}
 }
 ```
 
-For entries with no changes, do not add any comments.
+## Duplicate Detection
+
+```
+python3 $TOOLS_DIR/duplicates.py <file.bib>
+```
+
+Returns JSON array of duplicate pairs (by key, DOI, title, or preprint+published). For each duplicate, add: `% bibtidy: DUPLICATE of <other_key> — consider removing`
+
+## Per-Entry Checks
+
+For each `@article`, `@inproceedings`, `@book`, etc.:
+
+**1. Verify existence** — Search for `"<title>" <first author last name>`. If not found: `% bibtidy: NOT FOUND — verify manually`
+
+**2. Cross-check metadata** — If DOI exists, fetch via `crossref.py doi <DOI>`. Otherwise `crossref.py search "<title>"`. Compare title, year, authors, journal, volume, pages.
+
+**3. Check for published preprints** — If journal contains "arxiv"/"biorxiv"/"chemrxiv", search for published version. Update title, venue, year, volume, pages, entry type. Only update if confirmed via DOI or two independent sources.
+
+**4. Apply fixes** — DOI URL prefix stripping, page hyphen fix (`-` → `--`), year whitespace, empty field removal, author corrections, venue/year/volume/pages corrections, preprint upgrades.
+
+**Always apply the best-available fix.** If confidence is low (sources conflict, data incomplete, or only partial match), still apply the fix but add `% bibtidy: REVIEW — <reason>` explaining why it needs human attention.
 
 ## Saving Changes
 
-**Do NOT rewrite the entire .bib file at once.** This risks silent data loss, especially for large files. Instead:
+- Use Edit tool for targeted replacements — not whole-file rewrites
+- For large files (>30 entries), process in batches of ~15, reporting progress
+- Verify entry count before and after — must match
 
-- Use the **Edit tool** to make targeted replacements for each entry that needs changes (replace the old entry text with the commented-out original + bibtidy comments + corrected entry).
-- For files with more than 30 entries, consider writing a Python script (via Bash) that applies all collected fixes to the .bib file programmatically, rather than making dozens of individual Edit calls.
-- Always verify the final file is valid by counting entries before and after — the count must match.
+## Common Mistakes
 
-## Output format
+| Mistake | Fix |
+|---------|-----|
+| Missing `% bibtidy: source` URL | Every changed entry needs a source URL — use DOI URL or venue page |
+| Incomplete commented original | Comment out ALL lines of the original, including closing `}` |
+| Adding comments to unchanged entries | Only changed entries get bibtidy comments |
+| Rewriting entire file | Use Edit tool for each entry individually |
+| Deleting duplicate entries | Flag with comment only — never delete |
+| Losing `@string`/`@preamble` blocks | Preserve verbatim, don't touch |
+| Single hyphen in page ranges | Always use `--` (double hyphen) for BibTeX page ranges |
 
-- Print a summary: total entries, how many verified, how many fixed, how many need manual review
+## Preserve
 
-## Important
-
-- Process entries in order. Do not reorder them.
-- Preserve all fields you don't change.
-- Preserve existing user comments (lines starting with `%` that don't start with `% bibtidy:`).
-- Preserve `@string`, `@preamble`, `@comment` blocks verbatim.
-- Preserve LaTeX macros and brace-protected capitalization in titles.
-- Preserve empty lines between entries exactly as they appear — do not add or remove blank lines.
-- If you hit rate limits on any API, note it and continue with the next entry.
-- For large files (>30 entries), process in batches and report progress.
+- Entry order, all unchanged fields, empty lines between entries
+- User comments (`%` lines not starting with `% bibtidy:`)
+- `@string`, `@preamble`, `@comment` blocks
+- LaTeX macros and brace-protected capitalization in titles
+- If rate-limited, note and continue with next entry

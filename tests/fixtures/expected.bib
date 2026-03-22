@@ -1,0 +1,129 @@
+% Test fixture for bibtidy skill validation
+% Each entry targets a specific check — see validate.py for expected outcomes
+
+@string{neurips = {Advances in Neural Information Processing Systems}}
+
+@preamble{"Managed by bibtidy — do not edit metadata comments"}
+
+% --- Case 1: Correct entry (should be left unchanged) ---
+@inproceedings{vaswani2017attention,
+  title={Attention is All you Need},
+  author={Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, {\L}ukasz and Polosukhin, Illia},
+  booktitle={Advances in Neural Information Processing Systems},
+  volume={30},
+  year={2017}
+}
+
+% --- Case 2: Wrong co-author (editor listed as author) ---
+% @article{hyvarinen2005estimation,
+%   title={Estimation of non-normalized statistical models by score matching.},
+%   author={Hyv{\"a}rinen, Aapo and Dayan, Peter},
+%   journal={Journal of Machine Learning Research},
+%   volume={6},
+%   number={4},
+%   year={2005}
+% }
+% bibtidy: source https://jmlr.org/papers/v6/hyvarinen05a.html
+% bibtidy: removed "Dayan, Peter" — journal editor, not co-author
+@article{hyvarinen2005estimation,
+  title={Estimation of non-normalized statistical models by score matching},
+  author={Hyv{\"a}rinen, Aapo},
+  journal={Journal of Machine Learning Research},
+  volume={6},
+  number={4},
+  year={2005}
+}
+
+% --- Case 3: arXiv preprint with published version available ---
+% @article{lipman2022flow,
+%   title={Flow matching for generative modeling},
+%   author={Lipman, Yaron and Chen, Ricky TQ and Ben-Hamu, Heli and Nickel, Maximilian and Le, Matt},
+%   journal={arXiv preprint arXiv:2210.02747},
+%   year={2022}
+% }
+% bibtidy: source https://openreview.net/forum?id=PqvMRDCJT9t
+% bibtidy: published at ICLR 2023 (was arXiv preprint)
+@inproceedings{lipman2022flow,
+  title={Flow matching for generative modeling},
+  author={Lipman, Yaron and Chen, Ricky TQ and Ben-Hamu, Heli and Nickel, Maximilian and Le, Matt},
+  booktitle={International Conference on Learning Representations},
+  year={2023}
+}
+
+% --- Case 4: Formatting issues (DOI URL prefix, single-hyphen pages) ---
+% @article{ho2020denoising,
+%   title={Denoising diffusion probabilistic models},
+%   author={Ho, Jonathan and Jain, Ajay and Abbeel, Pieter},
+%   journal={Advances in Neural Information Processing Systems},
+%   volume={33},
+%   pages={6840-6851},
+%   year={2020},
+%   doi={https://doi.org/10.48550/arXiv.2006.11239}
+% }
+% bibtidy: source https://doi.org/10.48550/arXiv.2006.11239
+% bibtidy: stripped DOI URL prefix, fixed page range hyphen
+@article{ho2020denoising,
+  title={Denoising diffusion probabilistic models},
+  author={Ho, Jonathan and Jain, Ajay and Abbeel, Pieter},
+  journal={Advances in Neural Information Processing Systems},
+  volume={33},
+  pages={6840--6851},
+  year={2020},
+  doi={10.48550/arXiv.2006.11239}
+}
+
+% --- Case 5: Duplicate pair (bioRxiv preprint + published version) ---
+% bibtidy: DUPLICATE of watson2023novo — consider removing
+@article{watson2022broadly,
+  title={Broadly applicable and accurate protein design by integrating structure prediction networks and diffusion generative models},
+  author={Watson, Joseph L and Juergens, David and Bennett, Nathaniel R and Trippe, Brian L and Yim, Jason and Eisenach, Helen E and Ahern, Woody and Borst, Andrew J and Ragotte, Robert J and Milles, Lukas F and others},
+  journal={BioRxiv},
+  pages={2022--12},
+  year={2022},
+  publisher={Cold Spring Harbor Laboratory}
+}
+
+@article{watson2023novo,
+  title={De novo design of protein structure and function with RFdiffusion},
+  author={Watson, Joseph L and Juergens, David and Bennett, Nathaniel R and Trippe, Brian L and Yim, Jason and Eisenach, Helen E and Ahern, Woody and Borst, Andrew J and Ragotte, Robert J and Milles, Lukas F and others},
+  journal={Nature},
+  volume={620},
+  pages={1089--1100},
+  year={2023},
+  publisher={Nature Publishing Group UK London}
+}
+
+% --- Case 6: Wrong page numbers (should be corrected via CrossRef) ---
+% @inproceedings{strudel2021segmenter,
+%   title={Segmenter: Transformer for semantic segmentation},
+%   author={Strudel, Robin and Garcia, Ricardo and Laptev, Ivan and Schmid, Cordelia},
+%   booktitle={Proceedings of the IEEE/CVF international conference on computer vision},
+%   pages={7262--7272},
+%   year={2021}
+% }
+% bibtidy: source https://doi.org/10.1109/iccv48922.2021.00717
+% bibtidy: corrected page range 7262--7272 → 7242--7252
+@inproceedings{strudel2021segmenter,
+  title={Segmenter: Transformer for semantic segmentation},
+  author={Strudel, Robin and Garcia, Ricardo and Laptev, Ivan and Schmid, Cordelia},
+  booktitle={Proceedings of the IEEE/CVF international conference on computer vision},
+  pages={7242--7252},
+  year={2021}
+}
+
+% --- Case 7: arXiv preprint where published title changed ---
+% @article{khader2022medical,
+%   title={Medical Diffusion--Denoising Diffusion Probabilistic Models for 3D Medical Image Generation},
+%   author={Khader, Firas and Mueller-Franzes, Gustav and Arasteh, Soroosh Tayebi and Han, Tianyu and Haarburger, Christoph and Schulze-Hagen, Maximilian and Schad, Philipp and Engelhardt, Sandy and Baessler, Bettina and Foersch, Sebastian and others},
+%   journal={arXiv preprint arXiv:2211.03364},
+%   year={2022}
+% }
+% bibtidy: source https://doi.org/10.1038/s41598-023-34341-2
+% bibtidy: updated from arXiv to published version (Scientific Reports 2023), title updated
+@article{khader2022medical,
+  title={Denoising Diffusion Probabilistic Models for 3D Medical Image Generation},
+  author={Khader, Firas and Mueller-Franzes, Gustav and Arasteh, Soroosh Tayebi and Han, Tianyu and Haarburger, Christoph and Schulze-Hagen, Maximilian and Schad, Philipp and Engelhardt, Sandy and Baessler, Bettina and Foersch, Sebastian and others},
+  journal={Scientific Reports},
+  volume={13},
+  year={2023}
+}
