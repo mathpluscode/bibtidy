@@ -54,7 +54,7 @@ SAMPLE_DOI_RESPONSE = {"message": SAMPLE_WORK_ITEM}
 
 EXPECTED_FIELDS = {
     "title", "authors", "year", "journal", "volume",
-    "issue", "pages", "doi", "type", "url",
+    "number", "pages", "doi", "type", "url",
 }
 
 class TestFormatWork:
@@ -65,7 +65,7 @@ class TestFormatWork:
         assert result["year"] == "2017"
         assert result["journal"] == "Advances in Neural Information Processing Systems"
         assert result["volume"] == "30"
-        assert result["issue"] == "1"
+        assert result["number"] == "1"
         assert result["pages"] == "5998-6008"
         assert result["doi"] == "10.1234/example.2024"
         assert result["type"] == "article"
@@ -78,7 +78,7 @@ class TestFormatWork:
         assert result["year"] is None
         assert result["journal"] is None
         assert result["volume"] is None
-        assert result["issue"] is None
+        assert result["number"] is None
         assert result["pages"] is None
         assert result["type"] == "book"
 

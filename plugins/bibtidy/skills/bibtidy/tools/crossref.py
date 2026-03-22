@@ -90,7 +90,7 @@ def format_work(item: dict) -> dict:
         "year": _extract_year(item),
         "journal": journal,
         "volume": item.get("volume"),
-        "issue": item.get("issue"),
+        "number": item.get("issue"),  # CrossRef "issue" = BibTeX "number"
         "pages": item.get("page"),
         "doi": item.get("DOI"),
         "type": _map_type(item.get("type", "")),

@@ -14,6 +14,7 @@ You are a meticulous academic reference checker. Process the .bib file entry by 
 
 | Tool | Command |
 |------|---------|
+| **Field comparison** | `python3 $TOOLS_DIR/compare.py <file.bib> [--key KEY]` |
 | CrossRef DOI lookup | `python3 $TOOLS_DIR/crossref.py doi <DOI>` |
 | CrossRef title search | `python3 $TOOLS_DIR/crossref.py search "<title>"` |
 | Duplicate detection | `python3 $TOOLS_DIR/duplicates.py <file.bib>` |
@@ -65,22 +66,22 @@ For unchanged entries, do NOT add any comments or URLs.
 1. Read the .bib file, note the file path
 2. Back up for format validation: `cp <file>.bib <file>.bib.orig`
 3. Preserve `@string`, `@preamble`, `@comment` blocks verbatim
-4. Run duplicate detection
-5. **Verify entries in parallel** — dispatch subagents to look up entries concurrently (see below)
-6. Apply fixes **sequentially** via Edit tool — do NOT rewrite the entire file
-7. Run format validation; fix violations and re-run until clean
-8. Delete backup: `rm <file>.bib.orig`
-9. Print summary: total entries, verified, fixed, needs manual review
+4. Run duplicate detection: `python3 $TOOLS_DIR/duplicates.py <file.bib>`
+5. **Run field comparison**: `python3 $TOOLS_DIR/compare.py <file.bib>` — this programmatically compares every entry against CrossRef and returns exact field-level mismatches. Do NOT skip this step or rely on visual comparison alone.
+6. **Verify with subagents in parallel** — for entries with mismatches OR errors from `compare.py`, dispatch subagents to confirm fixes via WebSearch (see below). Entries where `compare.py` returned an error (e.g. "No exact title match") still need full verification — the subagent should search for the paper and check all fields.
+7. Apply fixes **sequentially** via Edit tool — do NOT rewrite the entire file. You MUST apply **every** mismatch reported by `compare.py` — do not skip any field (including `number`, `pages`, `volume`). Use the `crossref_value` exactly as given (do NOT rephrase, reformat, or partially apply it). For title mismatches on preprint→published upgrades, replace the entire title with the CrossRef title — do NOT try to edit parts of the old title.
+8. Run format validation; fix violations and re-run until clean
+9. Delete backup: `rm <file>.bib.orig`
+10. Print summary: total entries, verified, fixed, needs manual review
 
 ## Parallel Verification with Subagents
 
 Use the Agent tool to verify multiple entries concurrently. This dramatically reduces wall-clock time (e.g., 7 entries: ~1 min parallel vs ~5 min sequential; 100 entries: ~3 min vs ~40 min).
 
-**Step 1 — Dispatch lookup agents:** For each entry (or batch of entries), launch a subagent that:
-- Resolves `$TOOLS_DIR` (same command as above)
-- Runs CrossRef lookup (`crossref.py doi` or `crossref.py search`)
-- Optionally runs WebSearch for verification
-- Returns a JSON summary: key, whether entry needs changes, what changed, source URL
+**Step 1 — Dispatch verification agents:** For entries that `compare.py` flagged with mismatches OR returned errors, launch a subagent that:
+- For mismatches: runs WebSearch to confirm the CrossRef data (especially for preprint upgrades and author changes)
+- For errors (e.g. paper not found in CrossRef): runs WebSearch + CrossRef lookup to verify all fields from scratch
+- Returns a JSON summary: key, whether each mismatch is confirmed, source URL, any additional corrections found
 
 Launch all agents in a single message so they run concurrently. Group into batches of ~10 if there are many entries.
 
@@ -92,7 +93,7 @@ Launch all agents in a single message so they run concurrently. Group into batch
 ```
 Verify this BibTeX entry against CrossRef. Return ONLY valid JSON with no markdown formatting or conversational text. Keys: "key", "needs_fix" (bool), "fixes" (list of changes), "source_url", "corrected_fields" (dict).
 
-TOOLS_DIR="$(dirname "$(find ~/.claude -path '*/skills/bibtidy/tools/crossref.py' -print -quit 2>/dev/null)")"
+TOOLS_DIR="$HOME/.claude/skills/bibtidy/tools"
 
 Entry:
 @article{smith2020deep,
@@ -142,6 +143,8 @@ For each `@article`, `@inproceedings`, `@book`, etc.:
 | Deleting duplicate entries | Flag with comment only — never delete |
 | Losing `@string`/`@preamble` blocks | Preserve verbatim, don't touch |
 | Single hyphen in page ranges | Always use `--` (double hyphen) for BibTeX page ranges |
+| Partially applying title changes | When CrossRef title differs (e.g. preprint→published), replace the ENTIRE title with the CrossRef value — do not edit substrings |
+| Ignoring `number` field mismatches | `compare.py` reports `number` mismatches — apply them |
 
 ## Preserve
 

@@ -9,6 +9,8 @@ import pytest
 # Import from tests directory
 sys.path.insert(0, os.path.dirname(__file__))
 
+from duplicates import parse_bib_entries
+
 from validate import (
     find_entry_block,
     find_commented_entry,
@@ -113,3 +115,116 @@ class TestHasBibtidyComment:
             "}"
         )
         assert has_bibtidy_comment(text, "Dup", r"DUPLICATE") is True
+
+
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+
+# Every field-level difference between input.bib and expected.bib must be
+# declared here.  If someone updates expected.bib with a new correction,
+# this test fails until the change is explicitly registered — preventing
+# silent drift between the fixtures and validate.py checks.
+#
+# Format:  key -> { field: (input_value_or_None, expected_value_or_None) }
+# Use None for fields that are absent in one file.
+EXPECTED_DIFFS = {
+    "hyvarinen2005estimation": {
+        "title": (
+            "Estimation of non-normalized statistical models by score matching.",
+            "Estimation of non-normalized statistical models by score matching",
+        ),
+        "author": (
+            'Hyv{\\"a}rinen, Aapo and Dayan, Peter',
+            'Hyv{\\"a}rinen, Aapo',
+        ),
+        "number": ("4", "24"),
+        "pages": (None, "695--709"),
+    },
+    "lipman2022flow": {
+        "entry_type": ("article", "inproceedings"),
+        "journal": ("arXiv preprint arXiv:2210.02747", None),
+        "booktitle": (None, "International Conference on Learning Representations"),
+        "year": ("2022", "2023"),
+    },
+    "ho2020denoising": {
+        "pages": ("6840-6851", "6840--6851"),
+        "doi": ("https://doi.org/10.48550/arXiv.2006.11239", "10.48550/arXiv.2006.11239"),
+    },
+    "strudel2021segmenter": {
+        "pages": ("7262--7272", "7242--7252"),
+    },
+    "khader2022medical": {
+        "title": (
+            "Medical Diffusion--Denoising Diffusion Probabilistic Models for 3D Medical Image Generation",
+            "Denoising Diffusion Probabilistic Models for 3D Medical Image Generation",
+        ),
+        "journal": ("arXiv preprint arXiv:2211.03364", "Scientific Reports"),
+        "volume": (None, "13"),
+        "year": ("2022", "2023"),
+    },
+}
+
+
+class TestFixtureDiffs:
+    """Ensure every field difference between input.bib and expected.bib is declared."""
+
+    @pytest.fixture(scope="class")
+    def entries(self):
+        with open(os.path.join(FIXTURES_DIR, "input.bib")) as f:
+            input_entries = {e["key"]: e for e in parse_bib_entries(f.read())}
+        with open(os.path.join(FIXTURES_DIR, "expected.bib")) as f:
+            expected_entries = {e["key"]: e for e in parse_bib_entries(f.read())}
+        return input_entries, expected_entries
+
+    def test_no_undeclared_diffs(self, entries):
+        """Fail if expected.bib has field changes not listed in EXPECTED_DIFFS."""
+        input_entries, expected_entries = entries
+        undeclared = []
+        for key in input_entries:
+            inp = input_entries[key]
+            exp = expected_entries.get(key)
+            if exp is None:
+                undeclared.append(f"  {key}: missing from expected.bib")
+                continue
+            all_fields = set(inp.keys()) | set(exp.keys())
+            for field in all_fields:
+                if field == "key":
+                    continue
+                iv = inp.get(field)
+                ev = exp.get(field)
+                if iv == ev:
+                    continue
+                declared = EXPECTED_DIFFS.get(key, {}).get(field)
+                if declared is None:
+                    undeclared.append(
+                        f"  {key}.{field}: {iv!r} → {ev!r} (not in EXPECTED_DIFFS)"
+                    )
+                elif declared != (iv, ev):
+                    undeclared.append(
+                        f"  {key}.{field}: declared {declared} but actual {(iv, ev)}"
+                    )
+        assert not undeclared, (
+            "Undeclared field differences between input.bib and expected.bib:\n"
+            + "\n".join(undeclared)
+        )
+
+    def test_no_stale_diffs(self, entries):
+        """Fail if EXPECTED_DIFFS declares a change that no longer exists."""
+        input_entries, expected_entries = entries
+        stale = []
+        for key, fields in EXPECTED_DIFFS.items():
+            inp = input_entries.get(key)
+            exp = expected_entries.get(key)
+            if inp is None or exp is None:
+                stale.append(f"  {key}: entry missing from fixtures")
+                continue
+            for field, (old, new) in fields.items():
+                iv = inp.get(field)
+                ev = exp.get(field)
+                if (iv, ev) != (old, new):
+                    stale.append(
+                        f"  {key}.{field}: declared ({old!r}, {new!r}) "
+                        f"but actual ({iv!r}, {ev!r})"
+                    )
+        assert not stale, (
+            "Stale entries in EXPECTED_DIFFS:\n" + "\n".join(stale)
+        )

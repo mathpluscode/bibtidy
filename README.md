@@ -22,7 +22,8 @@ To remove bibtidy comments after review, just ask Claude: "remove all bibtidy co
 
 ## Examples
 
-**Example 1**: Google Scholar adds editors as co-authors. ([source](https://scholar.googleusercontent.com/scholar.bib?q=info:Rt8ZJ9wqQacJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0EKWmm3JEMfU:ADi0EEUAAAAAab9CKfWxrzWAi-uVwDbMLutl1_s&scisig=ADi0EEUAAAAAab9CKVjijw6BW7-dGJr1fECB9uQ&scisf=4&ct=citation&cd=-1&hl=en))
+<details open>
+<summary><b>Example 1</b>: Google Scholar adds editors as co-authors (<a href="https://scholar.googleusercontent.com/scholar.bib?q=info:Rt8ZJ9wqQacJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0EKWmm3JEMfU:ADi0EEUAAAAAab9CKfWxrzWAi-uVwDbMLutl1_s&scisig=ADi0EEUAAAAAab9CKVjijw6BW7-dGJr1fECB9uQ&scisf=4&ct=citation&cd=-1&hl=en">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -47,18 +48,22 @@ After:
 %   year={2005}
 % }
 % bibtidy: source https://jmlr.org/papers/v6/hyvarinen05a.html
-% bibtidy: removed "Dayan, Peter" — journal editor, not co-author
+% bibtidy: removed "Dayan, Peter" — journal editor, not co-author; number 4 → 24; added pages 695--709
 @article{hyvarinen2005estimation,
   title={Estimation of non-normalized statistical models by score matching},
   author={Hyv{\"a}rinen, Aapo},
   journal={Journal of Machine Learning Research},
   volume={6},
-  number={4},
+  number={24},
+  pages={695--709},
   year={2005}
 }
 ```
 
-**Example 2**: arXiv preprint upgraded to published version. ([source](https://scholar.googleusercontent.com/scholar.bib?q=info:sCeCG7MKl-EJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0EKWmm3JEcQ8:ADi0EEUAAAAAab9CaQ_kXDvxa7JtfZRV_Nw4PHA&scisig=ADi0EEUAAAAAab9CaYN4q4ZlyBKVAwVYN49_U9k&scisf=4&ct=citation&cd=-1&hl=en))
+</details>
+
+<details open>
+<summary><b>Example 2</b>: arXiv preprint upgraded to published version (<a href="https://scholar.googleusercontent.com/scholar.bib?q=info:sCeCG7MKl-EJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0EKWmm3JEcQ8:ADi0EEUAAAAAab9CaQ_kXDvxa7JtfZRV_Nw4PHA&scisig=ADi0EEUAAAAAab9CaYN4q4ZlyBKVAwVYN49_U9k&scisf=4&ct=citation&cd=-1&hl=en">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -88,7 +93,10 @@ After:
 }
 ```
 
-**Example 3**: arXiv preprint upgraded to published version with title change. ([source](https://arxiv.org/abs/2211.03364v7))
+</details>
+
+<details>
+<summary><b>Example 3</b>: arXiv preprint upgraded to published version with title change (<a href="https://arxiv.org/abs/2211.03364v7">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -119,7 +127,10 @@ After:
 }
 ```
 
-**Example 4**: Wrong page numbers corrected via CrossRef. ([source](https://scholar.googleusercontent.com/scholar.bib?q=info:IrnONgPsYfIJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0ENylm3JE4bI:ADi0EEUAAAAAab9C+bLnAvK8D-XbsBF71_Icwng&scisig=ADi0EEUAAAAAab9C+TOLh0TDAOTbklme_5Hngoc&scisf=4&ct=citation&cd=-1&hl=en))
+</details>
+
+<details>
+<summary><b>Example 4</b>: Wrong page numbers corrected via CrossRef (<a href="https://scholar.googleusercontent.com/scholar.bib?q=info:IrnONgPsYfIJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0ENylm3JE4bI:ADi0EEUAAAAAab9C+bLnAvK8D-XbsBF71_Icwng&scisig=ADi0EEUAAAAAab9C+TOLh0TDAOTbklme_5Hngoc&scisf=4&ct=citation&cd=-1&hl=en">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -152,7 +163,10 @@ After:
 }
 ```
 
-**Example 5**: bioRxiv preprint duplicated with published version.
+</details>
+
+<details>
+<summary><b>Example 5</b>: bioRxiv preprint duplicated with published version</summary>
 
 Before:
 ```bibtex
@@ -198,6 +212,14 @@ After:
   publisher={Nature Publishing Group UK London}
 }
 ```
+
+</details>
+
+## FAQ
+
+**Why are page numbers so often wrong?**
+
+Page numbers are one of the most common errors in BibTeX entries. Google Scholar extracts metadata by scraping PDFs rather than querying publisher databases, so page numbers are frequently incorrect. Worse, even official sources can disagree — for example, the same CVPR 2020 paper "Momentum Contrast for Unsupervised Visual Representation Learning" has pages 9729--9738 on [CVF Open Access](https://openaccess.thecvf.com/content_CVPR_2020/html/He_Momentum_Contrast_for_Unsupervised_Visual_Representation_Learning_CVPR_2020_paper.html) but pages 9726--9735 on [IEEE Xplore](https://ieeexplore.ieee.org/document/9157636), because IEEE re-paginates when compiling the full proceedings volume. bibtidy uses CrossRef as the authoritative source for page numbers. CrossRef gets metadata directly from publishers via DOI registration, so for IEEE/CVF conferences it returns the IEEE Xplore pagination (9726--9735 in the example above). When sources conflict, bibtidy applies the DOI-linked version and flags the entry with `% bibtidy: REVIEW` so you can verify.
 
 ## License
 
