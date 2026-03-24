@@ -11,9 +11,9 @@
   "plugins": [
     {
       "name": "bibtidy",
-      "source": "./plugins/bibtidy",
+      "source": "./",
       "description": "Validate and fix BibTeX reference files — verifies entries against Google Scholar and CrossRef, catches wrong authors, stale preprints, and incorrect metadata",
-      "version": "1.0.2",
+      "version": "1.1.0",
       "keywords": ["bibtex", "bibliography", "latex", "overleaf", "academic", "reference", "citation"],
       "category": "academic",
       "license": "MIT"

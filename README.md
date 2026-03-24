@@ -4,10 +4,15 @@ A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that verif
 
 ## Install
 
-From the plugin marketplace:
 ```
 /plugin marketplace add mathpluscode/bibtidy
-/plugin install bibtidy@bibtidy
+/plugin install bibtidy@mathpluscode-bibtidy
+```
+
+If you installed version <= 1.0.2, uninstall before reinstall:
+
+```
+/plugin uninstall bibtidy@bibtidy
 ```
 
 ## Usage
@@ -23,7 +28,7 @@ To remove bibtidy comments after review, ask Claude: "remove all bibtidy comment
 ## Examples
 
 <details open>
-<summary><b>Example 1</b>: Google Scholar adds editors as co-authors (<a href="https://scholar.googleusercontent.com/scholar.bib?q=info:Rt8ZJ9wqQacJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0EKWmm3JEMfU:ADi0EEUAAAAAab9CKfWxrzWAi-uVwDbMLutl1_s&scisig=ADi0EEUAAAAAab9CKVjijw6BW7-dGJr1fECB9uQ&scisf=4&ct=citation&cd=-1&hl=en">source</a>)</summary>
+<summary><b>Example 1</b>: Google Scholar adds editors as co-authors (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Estimation+of+non-normalized+statistical+models+by+score+matching&btnG=">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -63,7 +68,7 @@ After:
 </details>
 
 <details open>
-<summary><b>Example 2</b>: arXiv preprint upgraded to published version (<a href="https://scholar.googleusercontent.com/scholar.bib?q=info:sCeCG7MKl-EJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0EKWmm3JEcQ8:ADi0EEUAAAAAab9CaQ_kXDvxa7JtfZRV_Nw4PHA&scisig=ADi0EEUAAAAAab9CaYN4q4ZlyBKVAwVYN49_U9k&scisf=4&ct=citation&cd=-1&hl=en">source</a>)</summary>
+<summary><b>Example 2</b>: arXiv preprint upgraded to published version (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Flow+matching+for+generative+modeling&btnG=">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -96,7 +101,7 @@ After:
 </details>
 
 <details>
-<summary><b>Example 3</b>: arXiv preprint upgraded to published version with title change (<a href="https://arxiv.org/abs/2211.03364v7">source</a>)</summary>
+<summary><b>Example 3</b>: arXiv preprint upgraded to published version with title change</summary>
 
 Before:
 ```bibtex
@@ -130,7 +135,7 @@ After:
 </details>
 
 <details>
-<summary><b>Example 4</b>: Wrong page numbers corrected via CrossRef (<a href="https://scholar.googleusercontent.com/scholar.bib?q=info:IrnONgPsYfIJ:scholar.google.com/&output=citation&scisdr=Cjzimnz0ENylm3JE4bI:ADi0EEUAAAAAab9C+bLnAvK8D-XbsBF71_Icwng&scisig=ADi0EEUAAAAAab9C+TOLh0TDAOTbklme_5Hngoc&scisf=4&ct=citation&cd=-1&hl=en">source</a>)</summary>
+<summary><b>Example 4</b>: Wrong page numbers corrected via CrossRef (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Segmenter%3A+Transformer+for+semantic+segmentation&btnG=">source</a>)</summary>
 
 Before:
 ```bibtex

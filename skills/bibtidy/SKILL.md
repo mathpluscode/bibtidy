@@ -23,12 +23,12 @@ You are a meticulous academic reference checker. Process the .bib file entry by 
 
 ## Script Path Resolution
 
-All bundled tools live in the `tools/` directory next to this SKILL.md. Before running any tool, resolve the absolute path once:
+All bundled tools live in the `tools/` directory next to this SKILL.md, installed at `~/.claude/skills/bibtidy/tools`. Before running any tool, resolve the absolute path once:
 
 ```
 TOOLS_DIR="$HOME/.claude/skills/bibtidy/tools"
 if [ ! -f "$TOOLS_DIR/crossref.py" ]; then
-  echo "Error: bibtidy tools not found. Reinstall the skill." >&2
+  echo "Error: bibtidy tools not found. Reinstall the plugin." >&2
   exit 1
 fi
 ```
@@ -68,8 +68,8 @@ For unchanged entries, do NOT add any comments or URLs.
 3. Preserve `@string`, `@preamble`, `@comment` blocks verbatim
 4. Run duplicate detection: `python3 $TOOLS_DIR/duplicates.py <file.bib>`
 5. **Run field comparison**: `python3 $TOOLS_DIR/compare.py <file.bib>` — this programmatically compares every entry against CrossRef and returns exact field-level mismatches. Do NOT skip this step or rely on visual comparison alone.
-6. **Verify with subagents in parallel** — for entries with mismatches OR errors from `compare.py`, dispatch subagents to confirm fixes via WebSearch (see below). Entries where `compare.py` returned an error (e.g. "No exact title match") still need full verification — the subagent should search for the paper and check all fields.
-7. Apply fixes **sequentially** via Edit tool — do NOT rewrite the entire file. You MUST apply **every** mismatch reported by `compare.py` — do not skip any field (including `number`, `pages`, `volume`). Use the `crossref_value` exactly as given (do NOT rephrase, reformat, or partially apply it). For title mismatches on preprint→published upgrades, replace the entire title with the CrossRef title — do NOT try to edit parts of the old title.
+6. **Verify with subagents in parallel** — for entries with mismatches OR errors from `compare.py`, dispatch subagents to gather source URLs and check for additional issues via WebSearch (see below). Entries where `compare.py` returned an error (e.g. "No exact title match") still need full verification — the subagent should search for the paper and check all fields. **Important: subagents MUST NOT override `compare.py` field values.** CrossRef is the authoritative source for metadata (pages, volume, number, etc.) because it receives data directly from publishers via DOI registration. When WebSearch finds a conflicting value (e.g. different page numbers on a conference website), always use the CrossRef value and add `% bibtidy: REVIEW` if desired — but do NOT keep the old value.
+7. Apply fixes **sequentially** via Edit tool — do NOT rewrite the entire file. You MUST apply **every** mismatch reported by `compare.py` — do not skip any field (including `number`, `pages`, `volume`). Use the `crossref_value` exactly as given (do NOT rephrase, reformat, or partially apply it). For title mismatches on preprint→published upgrades, replace the entire title with the CrossRef title — do NOT try to edit parts of the old title. Never reject a CrossRef value because another source disagrees.
 8. Run format validation; fix violations and re-run until clean
 9. Delete backup: `rm <file>.bib.orig`
 10. Print summary: total entries, verified, fixed, needs manual review

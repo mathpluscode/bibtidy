@@ -12,7 +12,7 @@ sys.path.insert(
     0,
     os.path.join(
         os.path.dirname(__file__), "..",
-        "plugins", "bibtidy", "skills", "bibtidy", "tools",
+        "skills", "bibtidy", "tools",
     ),
 )
 
@@ -20,7 +20,7 @@ from fmt import check_changed_entry, parse_entries
 
 TOOL_PATH = os.path.join(
     os.path.dirname(__file__), "..",
-    "plugins", "bibtidy", "skills", "bibtidy", "tools", "fmt.py",
+    "skills", "bibtidy", "tools", "fmt.py",
 )
 
 

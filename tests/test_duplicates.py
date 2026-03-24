@@ -13,7 +13,7 @@ sys.path.insert(
     0,
     os.path.join(
         os.path.dirname(__file__), "..",
-        "plugins", "bibtidy", "skills", "bibtidy", "tools",
+        "skills", "bibtidy", "tools",
     ),
 )
 
@@ -21,7 +21,7 @@ from duplicates import find_duplicates, is_preprint, normalize_title, parse_bib_
 
 TOOL_PATH = os.path.join(
     os.path.dirname(__file__), "..",
-    "plugins", "bibtidy", "skills", "bibtidy", "tools", "duplicates.py",
+    "skills", "bibtidy", "tools", "duplicates.py",
 )
 
 def _run(bib_text):

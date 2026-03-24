@@ -7,18 +7,15 @@ A Claude Code plugin that validates and fixes BibTeX files.
 ```
 bibtidy/
 ├── .claude-plugin/
-│   └── marketplace.json        ← marketplace catalog
-├── plugins/
+│   └── plugin.json             ← plugin manifest
+├── skills/
 │   └── bibtidy/
-│       ├── .claude-plugin/
-│       │   └── plugin.json     ← plugin manifest
-│       └── skills/
-│           └── bibtidy/
-│               ├── SKILL.md    ← the skill
-│               └── tools/
-│                   ├── crossref.py    ← CrossRef API client
-│                   ├── duplicates.py  ← duplicate detector
-│                   └── fmt.py         ← output format validator
+│       ├── SKILL.md            ← main skill
+│       └── tools/
+│           ├── compare.py      ← field-level comparison
+│           ├── crossref.py     ← CrossRef API client
+│           ├── duplicates.py   ← duplicate detector
+│           └── fmt.py          ← output format validator
 ├── tests/
 │   ├── fixtures/
 │   │   ├── input.bib           ← test input
@@ -26,6 +23,7 @@ bibtidy/
 │   ├── run.sh                  ← end-to-end test runner
 │   ├── validate.py             ← structural validation
 │   ├── conftest.py             ← pytest path setup
+│   ├── test_compare.py         ← unit tests for compare.py
 │   ├── test_crossref.py        ← unit tests for crossref.py
 │   ├── test_duplicates.py      ← unit tests for duplicates.py
 │   ├── test_fmt.py             ← unit tests for fmt.py
@@ -38,4 +36,19 @@ bibtidy/
 
 ## How it works
 
-The skill is invoked via `/bibtidy refs.bib`. Claude reads the .bib file, dispatches parallel subagents to verify entries against Google Scholar (WebSearch) and CrossRef (bundled `crossref.py`), then applies fixes sequentially using targeted Edit tool replacements. Every change includes the original entry commented out and a source URL for verification.
+Invoke with `/bibtidy refs.bib`. Claude reads the .bib file, dispatches parallel subagents to verify entries against Google Scholar (WebSearch) and CrossRef (bundled `crossref.py`), then applies fixes sequentially using targeted Edit tool replacements. Every change includes the original entry commented out and a source URL for verification.
+
+## Versioning
+
+Version is tracked in three files (`.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json`, `pyproject.toml`). Bump all at once:
+
+```
+./bump.sh 1.2.0
+```
+
+## Development
+
+The skill's tools are resolved at runtime from `~/.claude/skills/bibtidy/tools`. To test local changes:
+
+- Run `./tests/run.sh` — this syncs local tools to `~/.claude/skills/bibtidy/` before invoking Claude
+- Unit tests only: `uv run pytest tests/`

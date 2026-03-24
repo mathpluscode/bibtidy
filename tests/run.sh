@@ -12,7 +12,7 @@ INPUT="$SCRIPT_DIR/fixtures/input.bib"
 EXPECTED="$SCRIPT_DIR/fixtures/expected.bib"
 GOT="$SCRIPT_DIR/fixtures/got.bib"
 VALIDATOR="$SCRIPT_DIR/validate.py"
-FORMAT_VALIDATOR="$REPO_DIR/plugins/bibtidy/skills/bibtidy/tools/fmt.py"
+FORMAT_VALIDATOR="$REPO_DIR/skills/bibtidy/tools/fmt.py"
 
 # Run unit tests first — fail fast before the slower Claude invocation
 echo "=> Running unit tests..."
@@ -20,12 +20,13 @@ uv run pytest "$REPO_DIR/tests/" -v || { echo "=> Unit tests failed, aborting.";
 echo ""
 
 # Sync skill to installed location so /bibtidy uses the latest version
-# NOTE: This overwrites ~/.claude/skills/bibtidy with the local version
-SKILL_SRC="$REPO_DIR/plugins/bibtidy/skills/bibtidy"
+# Clean destination first to avoid stale files from renames/deletions
+SKILL_SRC="$REPO_DIR/skills/bibtidy"
 SKILL_DST="$HOME/.claude/skills/bibtidy"
+rm -rf "$SKILL_DST"
 mkdir -p "$SKILL_DST"
 cp "$SKILL_SRC/SKILL.md" "$SKILL_DST/SKILL.md"
-cp -r "$SKILL_SRC/tools" "$SKILL_DST/" 2>/dev/null || true
+cp -r "$SKILL_SRC/tools" "$SKILL_DST/"
 echo "=> Synced skill to $SKILL_DST"
 
 # Copy input to got.bib — bibtidy edits this copy in-place

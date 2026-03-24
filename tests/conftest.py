@@ -6,7 +6,7 @@ import sys
 # Add tools directory so tests can import crossref, duplicates, fmt directly
 _tools_dir = os.path.join(
     os.path.dirname(__file__), "..",
-    "plugins", "bibtidy", "skills", "bibtidy", "tools",
+    "skills", "bibtidy", "tools",
 )
 if _tools_dir not in sys.path:
     sys.path.insert(0, os.path.abspath(_tools_dir))
