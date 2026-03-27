@@ -62,10 +62,6 @@ echo "=> Structural validation..."
 echo ""
 python3 "$VALIDATOR" "$GOT" || FAILURES=$((FAILURES + 1))
 
-echo ""
-echo "=> Diff against expected output (informational — wording varies between runs):"
-diff "$EXPECTED" "$GOT" && echo "   (exact match)" || echo "   (differences shown above)"
-
 if [[ $FAILURES -gt 0 ]]; then
     echo ""
     echo "=> FAILED: $FAILURES check(s) did not pass"

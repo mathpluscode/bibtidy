@@ -149,10 +149,6 @@ def test_case_2_wrong_author(text):
         number = get_field(entry, "number")
         if number:
             t.check("24" in number, "Number corrected to 24")
-        pages = get_field(entry, "pages")
-        t.check(pages is not None, "Pages field added")
-        if pages:
-            t.check("695" in pages, "Pages include 695")
     return t
 
 

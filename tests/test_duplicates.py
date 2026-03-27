@@ -287,7 +287,6 @@ class TestCommentedOutEntries:
   journal={Journal of Machine Learning Research},
   volume={6},
   number={24},
-  pages={695--709},
   year={2005}
 }
 """

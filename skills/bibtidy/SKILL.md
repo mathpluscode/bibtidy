@@ -80,8 +80,10 @@ Use the Agent tool to verify multiple entries concurrently. This dramatically re
 
 **Step 1 — Dispatch verification agents:** For entries that `compare.py` flagged with mismatches OR returned errors, launch a subagent that:
 - For mismatches: runs WebSearch to confirm the CrossRef data (especially for preprint upgrades and author changes)
-- For errors (e.g. paper not found in CrossRef): runs WebSearch + CrossRef lookup to verify all fields from scratch
+- For errors (e.g. paper not found in CrossRef): runs WebSearch to verify **every** field from scratch — title, author, journal/booktitle, volume, number, pages, year. Do NOT skip number or other fields just because they look plausible.
 - Returns a JSON summary: key, whether each mismatch is confirmed, source URL, any additional corrections found
+
+**When CrossRef fails**, find the paper's official venue page via WebSearch. Many venues (JMLR, NeurIPS, CVPR, etc.) provide a downloadable `.bib` file — use WebFetch to grab it. An official `.bib` is the most reliable source: it has exact title, authors, volume, number, and pages with no guessing.
 
 Launch all agents in a single message so they run concurrently. Group into batches of ~10 if there are many entries.
 
@@ -122,7 +124,7 @@ For each `@article`, `@inproceedings`, `@book`, etc.:
 
 **3. Check for published preprints** — If journal contains "arxiv"/"biorxiv"/"chemrxiv", search for published version. Update title, venue, year, volume, pages, entry type. Only update if confirmed via DOI or two independent sources.
 
-**4. Apply fixes** — DOI URL prefix stripping, page hyphen fix (`-` → `--`), year whitespace, empty field removal, author corrections, venue/year/volume/pages corrections, preprint upgrades.
+**4. Apply fixes** — DOI URL prefix stripping, page hyphen fix (`-` → `--`), year whitespace, empty field removal, author corrections, venue/year/volume/pages corrections, preprint upgrades. Missing `pages` fields are NOT flagged — some venues (e.g. NeurIPS, ICLR) intentionally omit page numbers. Only mismatched pages (both sides have values that differ) are reported.
 
 **Always apply the best-available fix.** If confidence is low (sources conflict, data incomplete, or only partial match), still apply the fix but add `% bibtidy: REVIEW — <reason>` explaining why it needs human attention.
 

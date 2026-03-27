@@ -39,6 +39,7 @@ def _normalize_title(title: str) -> str:
     t = re.sub(r"\\[a-zA-Z]+\s*", "", t)
     t = re.sub(r"\\.", "", t)
     t = re.sub(r"\s+", " ", t).strip()
+    t = t.rstrip(".")
     return t
 
 
@@ -153,8 +154,6 @@ def compare_entry(entry: dict, crossref: dict) -> list[dict]:
     if bib_pages and cr_pages:
         if _normalize_pages(bib_pages) != _normalize_pages(cr_pages):
             _add("pages", bib_pages, cr_pages)
-    elif not bib_pages and cr_pages:
-        _add("pages", None, cr_pages)
 
     # DOI
     bib_doi = entry.get("doi", "").strip()

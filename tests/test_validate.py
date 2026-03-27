@@ -137,7 +137,6 @@ EXPECTED_DIFFS = {
             'Hyv{\\"a}rinen, Aapo',
         ),
         "number": ("4", "24"),
-        "pages": (None, "695--709"),
     },
     "lipman2022flow": {
         "entry_type": ("article", "inproceedings"),

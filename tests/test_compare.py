@@ -32,10 +32,11 @@ class TestPages:
         assert compare_entry(entry, cr) == []
 
     def test_missing_bib_pages(self):
+        """Missing pages not flagged — some venues intentionally omit them."""
         entry = {"key": "X"}
         cr = {"pages": "695-709"}
         ms = compare_entry(entry, cr)
-        assert any(m["field"] == "pages" for m in ms)
+        assert not any(m["field"] == "pages" for m in ms)
 
     def test_missing_crossref_pages(self):
         """If CrossRef has no pages, don't flag."""
