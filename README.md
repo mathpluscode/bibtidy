@@ -6,9 +6,22 @@ A bibliography toolkit for LaTeX, built as a [Claude Code](https://docs.anthropi
 
 ## Install
 
-```
+Add the marketplace in Claude Code:
+
+```bash
 /plugin marketplace add mathpluscode/bibkit
+```
+
+Install the plugin:
+
+```bash
 /plugin install bibkit@mathpluscode-bibkit
+```
+
+Reload plugins:
+
+```bash
+/reload-plugins
 ```
 
 ## bibtidy
