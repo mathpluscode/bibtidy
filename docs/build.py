@@ -115,6 +115,8 @@ def classify_entry(bibtidy_comments: list[str], diff: list[tuple[str, str]]) -> 
 
     if not has_changes and not bibtidy_comments:
         return "badge-ok", "unchanged"
+    if "not found" in joined:
+        return "badge-notfound", "not found"
     if "duplicate" in joined:
         return "badge-duplicate", "duplicate detected"
     if "removed" in joined and ("author" in joined or "editor" in joined or "co-author" in joined):
@@ -156,7 +158,7 @@ def render_diff_card(
     parts = []
     parts.append('<div class="diff-card">')
     parts.append('  <div class="diff-header">')
-    parts.append(f'    <span class="diff-title">{title}</span>')
+    parts.append(f'    <span class="diff-title">{linkify(title)}</span>')
     if add_count or del_count:
         stats = ""
         if add_count:
@@ -212,6 +214,9 @@ def build_html(cards_html: str) -> str:
     --badge-dup-bg: #fff8c5;
     --badge-dup-text: #9a6700;
     --badge-dup-border: #d4a72c;
+    --badge-notfound-bg: #ffebe9;
+    --badge-notfound-text: #cf222e;
+    --badge-notfound-border: #ff8182;
     --badge-ok-bg: #f6f8fa;
     --badge-ok-text: #656d76;
     --badge-ok-border: #d0d7de;
@@ -242,6 +247,9 @@ def build_html(cards_html: str) -> str:
       --badge-dup-bg: #d2992233;
       --badge-dup-text: #e3b341;
       --badge-dup-border: #d2992266;
+      --badge-notfound-bg: #8e131333;
+      --badge-notfound-text: #ff7b72;
+      --badge-notfound-border: #da363366;
       --badge-ok-bg: #30363d;
       --badge-ok-text: #8b949e;
       --badge-ok-border: #30363d;
@@ -384,6 +392,7 @@ def build_html(cards_html: str) -> str:
   .badge-fix {{ background: var(--badge-fix-bg); color: var(--badge-fix-text); border: 1px solid var(--badge-fix-border); }}
   .badge-upgrade {{ background: var(--badge-upgrade-bg); color: var(--badge-upgrade-text); border: 1px solid var(--badge-upgrade-border); }}
   .badge-duplicate {{ background: var(--badge-dup-bg); color: var(--badge-dup-text); border: 1px solid var(--badge-dup-border); }}
+  .badge-notfound {{ background: var(--badge-notfound-bg); color: var(--badge-notfound-text); border: 1px solid var(--badge-notfound-border); }}
   .badge-ok {{ background: var(--badge-ok-bg); color: var(--badge-ok-text); border: 1px solid var(--badge-ok-border); }}
 
   .diff-body {{
@@ -506,7 +515,8 @@ def main() -> None:
     for e in expected_entries:
         expected_by_key[e["key"]] = e
 
-    # Generate diff cards, separating unchanged entries
+    # Generate diff cards, separating by category
+    notfound_cards = []
     changed_cards = []
     unchanged_cards = []
 
@@ -544,11 +554,44 @@ def main() -> None:
 
         if badge_class == "badge-ok":
             unchanged_cards.append(card)
+        elif badge_class == "badge-notfound":
+            notfound_cards.append(card)
         else:
             changed_cards.append(card)
 
-    # Unchanged at the bottom
-    all_cards = changed_cards + unchanged_cards
+    # Handle entries commented out in expected (e.g. hallucinated references)
+    for key, inp in input_entries.items():
+        if key in seen_keys:
+            continue
+        # Find bibtidy comments for this key in expected text
+        bibtidy_comments = []
+        for line in expected_text.splitlines():
+            stripped = line.strip()
+            if (
+                stripped.startswith("% bibtidy:")
+                and key in expected_text[expected_text.index(stripped) : expected_text.index(stripped) + 500]
+            ):
+                bibtidy_comments.append(stripped)
+                break
+        # Simpler approach: scan expected text for bibtidy comments near the commented-out entry
+        bibtidy_comments = []
+        exp_lines = expected_text.splitlines()
+        for idx, line in enumerate(exp_lines):
+            if re.match(rf"^%\s*@\w+\{{{re.escape(key)},", line):
+                # Walk backwards to find bibtidy comments
+                j = idx - 1
+                while j >= 0 and exp_lines[j].strip().startswith("% bibtidy:"):
+                    bibtidy_comments.insert(0, exp_lines[j].strip())
+                    j -= 1
+                break
+        diff = [("del", line) for line in inp["lines"]]
+        badge_class, badge_label = classify_entry(bibtidy_comments, diff)
+        title = inp.get("title") or "Entry corrected"
+        card = render_diff_card(title, badge_class, badge_label, bibtidy_comments, diff)
+        notfound_cards.append(card)
+
+    # Not-found first, then other changes, then unchanged
+    all_cards = notfound_cards + changed_cards + unchanged_cards
     cards_html = "\n\n".join(all_cards)
 
     html = build_html(cards_html)

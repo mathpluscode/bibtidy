@@ -22,7 +22,7 @@ Assume standard brace-style BibTeX entries like `@article{...}`. Parenthesized B
 | CrossRef DOI lookup | `python3 $TOOLS_DIR/crossref.py doi <DOI>` |
 | CrossRef title search | `python3 $TOOLS_DIR/crossref.py search "<title>"` |
 | Duplicate detection | `python3 $TOOLS_DIR/duplicates.py <file.bib>` |
-| Format validation | `python3 $TOOLS_DIR/fmt.py <orig.bib> <modified.bib>` |
+| **Apply edits** | `python3 $TOOLS_DIR/edit.py <file.bib> <patches.json>` |
 | Web verification | WebSearch tool (preferred) or CrossRef scripts (fallback) |
 
 ## Script Path Resolution
@@ -40,7 +40,7 @@ Use `$TOOLS_DIR` in every invocation.
 
 ## Output Format for Changed Entries
 
-The Edit tool replacement text MUST contain the original entry, a source URL, an explanation, and the corrected entry. If CrossRef has a match for an entry you decide to change, also include a separate CrossRef URL line.
+The Edit tool replacement text MUST contain the original entry, one or more source URLs, an explanation, and the corrected entry. Include URLs for all sources used (CrossRef, DOI, venue page), each on its own `% bibtidy:` line.
 
 ```
 % @<type>{<key>,
@@ -48,8 +48,7 @@ The Edit tool replacement text MUST contain the original entry, a source URL, an
 %   <original field 2>,
 %   ...
 % }
-% bibtidy: source <URL>
-% bibtidy: crossref <URL>   # required when CrossRef has a match for a changed entry
+% bibtidy: <URL>
 % bibtidy: <what changed>
 @<type>{<key>,
   <corrected field 1>,
@@ -59,10 +58,9 @@ The Edit tool replacement text MUST contain the original entry, a source URL, an
 ```
 
 - **Part 1** — entire original entry, every line prefixed by `% `. All lines, not just the first.
-- **Part 2** — `% bibtidy: source ` followed by a URL. Must be exactly `% bibtidy: source https://...`.
-- **Part 3** — `% bibtidy: crossref ` followed by a URL when CrossRef has a match for a changed entry. Even if the final decision also relied on WebSearch, include this so the user can see the CrossRef record that was available.
-- **Part 4** — `% bibtidy: ` followed by explanation of what changed.
-- **Part 5** — corrected entry.
+- **Part 2** — `% bibtidy: ` followed by a URL. Must be exactly `% bibtidy: https://...`.
+- **Part 3** — `% bibtidy: ` followed by explanation of what changed.
+- **Part 4** — corrected entry.
 
 For unchanged entries, do NOT add any comments or URLs.
 
@@ -72,12 +70,13 @@ For unchanged entries, do NOT add any comments or URLs.
 2. Back up for format validation: `cp <file>.bib <file>.bib.orig`
 3. Preserve `@string`, `@preamble`, `@comment` blocks verbatim
 4. Run duplicate detection: `python3 $TOOLS_DIR/duplicates.py <file.bib>`
-5. **Run field comparison**: `python3 $TOOLS_DIR/compare.py <file.bib>` — this programmatically compares every entry against CrossRef and returns exact field-level mismatches. Do NOT skip this step or rely on visual comparison alone. **Skip rule**: if an entry has zero mismatches and no error in the compare.py output, skip it entirely — do NOT investigate, modify, or add comments to it. Only proceed with entries that compare.py flagged (mismatches, errors, or duplicates from step 4).
+5. **Run field comparison**: `python3 $TOOLS_DIR/compare.py <file.bib>` — this programmatically compares every entry against CrossRef and returns exact field-level mismatches. Do NOT skip this step or rely on visual comparison alone. The output is a JSON list; each element has `key`, `versions` (a list of CrossRef matches, each with `mismatches`, `url`, `doi`, etc.), and `error`. **Skip rule**: if an entry has zero mismatches across all versions and no error in the compare.py output, skip it entirely — do NOT investigate, modify, or add comments to it. Only proceed with entries that compare.py flagged (mismatches, errors, or duplicates from step 4).
 6. **Verify every planned modification with WebSearch** — for entries that compare.py flagged with mismatches or errors, and for entries flagged as duplicates, gather a source URL and double-check the modification via WebSearch. Entries where `compare.py` returned an error (e.g. "No exact title match") still need full verification — the subagent should search for the paper and check all fields. **Important: subagents MUST NOT override `compare.py` field values.** CrossRef is the authoritative source for metadata (pages, volume, number, etc.) because it receives data directly from publishers via DOI registration. When WebSearch finds a conflicting value (e.g. different page numbers on a conference website), always use the CrossRef value and add `% bibtidy: REVIEW` if desired — but do NOT keep the old value.
-7. Apply fixes **sequentially** via Edit tool — do NOT rewrite the entire file. You MUST apply **every** mismatch reported by `compare.py` — do not skip any field (including `number`, `pages`, `volume`). Use the `crossref_value` exactly as given (do NOT rephrase, reformat, or partially apply it). For title mismatches on preprint→published upgrades, replace the entire title with the CrossRef title — do NOT try to edit parts of the old title. Never reject a CrossRef value because another source disagrees. **CrossRef URL rule**: check the `crossref_url` field in the `compare.py` JSON output for each entry. If `crossref_url` is non-null, you MUST include `% bibtidy: crossref <crossref_url>` in the edit — copy the URL directly from the JSON. This is separate from the `% bibtidy: source` line (which comes from WebSearch).
-8. Run format validation; fix violations and re-run until clean
-9. Delete backup: `rm <file>.bib.orig`
-10. Print summary: total entries, verified, fixed, needs manual review
+7. **Flag hallucinated/non-existent references** — if compare.py returned an error (e.g. "No CrossRef results found" or "No exact title match in CrossRef results") AND WebSearch also finds no matching paper, the reference likely does not exist. Add `% bibtidy: NOT FOUND — no matching paper on CrossRef or web search; verify this reference exists` above the entry, then comment out the entire entry (prefix every line with `% `). Do NOT add a URL line.
+8. Apply fixes **sequentially** via Edit tool — do NOT rewrite the entire file. You MUST apply **every** mismatch reported by `compare.py` — do not skip any field (including `number`, `pages`, `volume`). Use the `crossref_value` exactly as given (do NOT rephrase, reformat, or partially apply it). For title mismatches on preprint→published upgrades, replace the entire title with the CrossRef title — do NOT try to edit parts of the old title. Never reject a CrossRef value because another source disagrees. **URL rule**: for every changed entry, include `% bibtidy: <url>` lines so the user can verify the correction. Include the CrossRef URL from compare.py's `url` field when available, plus any other authoritative source (DOI URL, venue page) found via WebSearch.
+9. Run format validation; fix violations and re-run until clean
+10. Delete backup: `rm <file>.bib.orig`
+11. Print a Markdown summary table with headers `Metric | Count` and exactly these rows: total entries, verified, fixed, not found. Do NOT include a separate "needs manual review" row.
 
 ## Parallel Verification with Subagents
 
@@ -129,7 +128,7 @@ For each `@article`, `@inproceedings`, `@book`, etc.:
 
 **3. Check for published preprints** — If journal contains "arxiv"/"biorxiv"/"chemrxiv", search for published version. Update title, venue, year, volume, pages, entry type. Only update if confirmed via DOI or two independent sources.
 
-**4. Apply fixes** — DOI URL prefix stripping, page hyphen fix (`-` → `--`), year whitespace, empty field removal, author corrections, venue/year/volume/pages corrections, preprint upgrades. Missing `pages` fields are NOT flagged — some venues (e.g. NeurIPS, ICLR) intentionally omit page numbers. Only mismatched pages (both sides have values that differ) are reported.
+**4. Apply fixes** — DOI URL prefix stripping, page hyphen fix (`-` → `--`), year whitespace, empty field removal, author corrections, venue/year/volume/pages corrections, preprint upgrades. Missing `pages` fields are NOT flagged — some venues (e.g. NeurIPS, ICLR) intentionally omit page numbers. Only mismatched pages (both sides have values that differ) are reported. Do not add a `doi` field to an entry that lacks one.
 
 **Always apply the best-available fix.** If confidence is low (sources conflict, data incomplete, or only partial match), still apply the fix but add `% bibtidy: REVIEW — <reason>` explaining why it needs human attention.
 
@@ -143,8 +142,7 @@ For each `@article`, `@inproceedings`, `@book`, etc.:
 
 | Mistake | Fix |
 |---------|-----|
-| Missing `% bibtidy: source` URL | Every changed entry needs a source URL — use DOI URL or venue page |
-| Missing `% bibtidy: crossref` URL on a changed entry with a CrossRef match | If `crossref_url` is non-null in compare.py output, copy it into `% bibtidy: crossref <URL>` — don't rely on memory, read the JSON |
+| Missing `% bibtidy:` URL | Every changed entry needs a URL — use DOI URL or venue page |
 | Incomplete commented original | Comment out ALL lines of the original, including closing `}` |
 | Adding comments to unchanged entries | Only changed entries get bibtidy comments — if compare.py reports zero mismatches and no error, do not touch the entry |
 | Rewriting entire file | Use Edit tool for each entry individually |
@@ -153,6 +151,7 @@ For each `@article`, `@inproceedings`, `@book`, etc.:
 | Single hyphen in page ranges | Always use `--` (double hyphen) for BibTeX page ranges |
 | Partially applying title changes | When CrossRef title differs (e.g. preprint→published), replace the ENTIRE title with the CrossRef value — do not edit substrings |
 | Ignoring `number` field mismatches | `compare.py` reports `number` mismatches — apply them |
+| Adding `doi` when entry didn't have one | Never inject a `doi` field into an entry that lacks one |
 
 ## Preserve
 

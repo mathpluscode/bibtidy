@@ -173,10 +173,11 @@ def compare_entry(entry: dict, crossref: dict) -> list[dict]:
 def lookup_and_compare(entry: dict, timeout: int = 10) -> dict:
     """Fetch CrossRef data for an entry and compare fields.
 
-    Returns a dict with: key, crossref_url, mismatches, error (if any).
+    Returns a dict with: key, versions (list of CrossRef matches with
+    mismatches), error (if any).
     """
     key = entry["key"]
-    result = {"key": key, "mismatches": [], "crossref_url": None, "error": None}
+    result = {"key": key, "versions": [], "error": None}
 
     # Try DOI first, then title search
     doi = entry.get("doi", "").strip()
@@ -194,26 +195,30 @@ def lookup_and_compare(entry: dict, timeout: int = 10) -> dict:
         result["error"] = cr["error"]
         return result
 
-    # For search results, pick the best match
     if "results" in cr:
         items = cr["results"]
         if not items:
             result["error"] = "No CrossRef results found"
             return result
-        # Pick the result whose title best matches
         bib_title_norm = normalize_title(entry.get("title", ""))
-        best = None
-        for item in items:
-            if normalize_title(item.get("title") or "") == bib_title_norm:
-                best = item
-                break
-        if best is None:
+        matches = [item for item in items if normalize_title(item.get("title") or "") == bib_title_norm]
+        if not matches:
             result["error"] = "No exact title match in CrossRef results"
             return result
-        cr = best
+    else:
+        matches = [cr]
 
-    result["crossref_url"] = cr.get("url")
-    result["mismatches"] = compare_entry(entry, cr)
+    result["versions"] = [
+        {
+            "type": item.get("type"),
+            "year": item.get("year"),
+            "journal": item.get("journal"),
+            "doi": item.get("doi"),
+            "url": item.get("url"),
+            "mismatches": compare_entry(entry, item),
+        }
+        for item in matches
+    ]
     return result
 
 

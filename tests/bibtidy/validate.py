@@ -103,14 +103,9 @@ def has_bibtidy_comment(text, key, pattern):
     return bool(re.search(pattern, region, re.IGNORECASE))
 
 
-def has_source_url(text, key):
-    """Check that a bibtidy source URL comment exists near the entry."""
-    return has_bibtidy_comment(text, key, r"% bibtidy: source https?://")
-
-
-def has_crossref_url(text, key):
-    """Check that a bibtidy CrossRef URL comment exists near the entry."""
-    return has_bibtidy_comment(text, key, r"% bibtidy: crossref https?://")
+def has_url(text, key):
+    """Check that a bibtidy URL comment exists near the entry."""
+    return has_bibtidy_comment(text, key, r"% bibtidy: https?://")
 
 
 class TestResult:
@@ -154,7 +149,7 @@ def check_wrong_author_fixed(text):
     entry = find_entry_block(text, "hyvarinen2005estimation")
     t.check(entry is not None, "Entry still exists")
     t.check(find_commented_entry(text, "hyvarinen2005estimation"), "Original entry commented out")
-    t.check(has_source_url(text, "hyvarinen2005estimation"), "Source URL provided")
+    t.check(has_url(text, "hyvarinen2005estimation"), "URL provided")
     if entry:
         t.check("Dayan" not in get_field(entry, "author"), "Dayan removed from authors")
         t.check("rinen" in (get_field(entry, "author") or ""), "Hyvärinen still listed as author")
@@ -170,7 +165,7 @@ def check_arxiv_upgraded_to_published(text):
     entry = find_entry_block(text, "lipman2022flow")
     t.check(entry is not None, "Entry still exists")
     t.check(find_commented_entry(text, "lipman2022flow"), "Original entry commented out")
-    t.check(has_source_url(text, "lipman2022flow"), "Source URL provided")
+    t.check(has_url(text, "lipman2022flow"), "URL provided")
     if entry:
         t.check(
             "arxiv" not in entry.lower() or "arxiv" not in get_field(entry, "journal").lower()
@@ -188,7 +183,7 @@ def check_formatting_fixes_applied(text):
     entry = find_entry_block(text, "ho2020denoising")
     t.check(entry is not None, "Entry still exists")
     t.check(find_commented_entry(text, "ho2020denoising"), "Original entry commented out")
-    t.check(has_source_url(text, "ho2020denoising"), "Source URL provided")
+    t.check(has_url(text, "ho2020denoising"), "URL provided")
     if entry:
         doi = get_field(entry, "doi")
         if doi:
@@ -219,8 +214,7 @@ def check_wrong_pages_fixed(text):
     entry = find_entry_block(text, "strudel2021segmenter")
     t.check(entry is not None, "Entry still exists")
     t.check(find_commented_entry(text, "strudel2021segmenter"), "Original entry commented out")
-    t.check(has_source_url(text, "strudel2021segmenter"), "Source URL provided")
-    t.check(has_crossref_url(text, "strudel2021segmenter"), "CrossRef URL provided")
+    t.check(has_url(text, "strudel2021segmenter"), "URL provided")
     if entry:
         pages = get_field(entry, "pages")
         if pages:
@@ -235,8 +229,7 @@ def check_title_change_upgraded(text):
     entry = find_entry_block(text, "khader2022medical")
     t.check(entry is not None, "Entry still exists")
     t.check(find_commented_entry(text, "khader2022medical"), "Original entry commented out")
-    t.check(has_source_url(text, "khader2022medical"), "Source URL provided")
-    t.check(has_crossref_url(text, "khader2022medical"), "CrossRef URL provided")
+    t.check(has_url(text, "khader2022medical"), "URL provided")
     if entry:
         title = get_field(entry, "title") or ""
         t.check("Medical Diffusion" not in title, "arXiv-only title prefix removed")
@@ -247,23 +240,71 @@ def check_title_change_upgraded(text):
     return t
 
 
+def has_comment_near_commented_entry(text, key, pattern):
+    """Check if a comment matching pattern appears near a commented-out entry.
+
+    Scans backwards from the commented entry line, collecting comment/blank
+    lines until a non-comment, non-blank line (or start of file) is reached.
+    """
+    escaped_key = re.escape(key)
+    entry_match = re.search(rf"^[ \t]*%\s*@\w+\{{{escaped_key},", text, re.MULTILINE)
+    if not entry_match:
+        return False
+    before = text[: entry_match.start()]
+    lines = before.split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    context_start = len(lines)
+    while context_start > 0:
+        line = lines[context_start - 1]
+        if line.startswith("%") or line.strip() == "":
+            context_start -= 1
+        else:
+            break
+    context_lines = lines[context_start:]
+    region = "\n".join(context_lines)
+    return bool(re.search(pattern, region, re.IGNORECASE))
+
+
+def check_hallucinated_entry_flagged(text):
+    """Hallucinated entry should be commented out and flagged as NOT FOUND."""
+    t = TestResult("Hallucinated entries flagged as NOT FOUND")
+    keys = ["wang2021identity"]
+    for key in keys:
+        t.check(find_entry_block(text, key) is None, f"{key} is no longer active")
+        t.check(find_commented_entry(text, key), f"{key} is commented out")
+        t.check(has_comment_near_commented_entry(text, key, r"NOT FOUND"), f"NOT FOUND comment near {key}")
+    return t
+
+
+def check_hallucinated_metadata_fixed(text):
+    """Entry with real paper but wrong title/authors should be corrected."""
+    t = TestResult("Hallucinated metadata fixed (aichberger2025semantically)")
+    entry = find_entry_block(text, "aichberger2025semantically")
+    t.check(entry is not None, "Entry still exists")
+    t.check(find_commented_entry(text, "aichberger2025semantically"), "Original entry commented out")
+    t.check(has_url(text, "aichberger2025semantically"), "URL provided")
+    if entry:
+        title = get_field(entry, "title") or ""
+        t.check("Improving Uncertainty" in title, "Title corrected to published version")
+        author = get_field(entry, "author") or ""
+        t.check("Hochreiter" in author, "Authors corrected")
+        t.check("Smith" not in author, "Hallucinated authors removed")
+    return t
+
+
 def check_published_article_not_downgraded(text):
-    """Published article should not be downgraded to a preprint, but casing/author fixes are OK."""
+    """Published article should not be downgraded to a preprint."""
     t = TestResult("Published article not downgraded (tzou2022coronavirus)")
     entry = find_entry_block(text, "tzou2022coronavirus")
     t.check(entry is not None, "Entry still exists")
-    t.check(find_commented_entry(text, "tzou2022coronavirus"), "Original entry commented out")
-    t.check(has_source_url(text, "tzou2022coronavirus"), "Source URL provided")
-    t.check(has_crossref_url(text, "tzou2022coronavirus"), "CrossRef URL provided")
     if entry:
         journal = get_field(entry, "journal") or ""
         year = get_field(entry, "year") or ""
-        author = get_field(entry, "author") or ""
         doi = get_field(entry, "doi")
         t.check("plos" in journal.lower(), "Published journal preserved (not downgraded)")
         t.check("arxiv" not in journal.lower(), "Not downgraded to preprint")
         t.check(year == "2022", "Published year preserved")
-        t.check("Kosakovsky Pond" in author, "Compound surname corrected")
         t.check(doi is None, "Missing DOI is not auto-added")
     return t
 
@@ -274,7 +315,7 @@ def test_entry_count(text):
     cleaned = remove_special_blocks(text)
     cleaned = re.sub(r"(?m)^[ \t]*%.*$", "", cleaned)
     all_at = re.findall(r"^[ \t]*@(\w+)\{", cleaned, re.MULTILINE)
-    t.check(len(all_at) == 9, f"Expected 9 entries, found {len(all_at)}")
+    t.check(len(all_at) == 10, f"Expected 10 active entries, found {len(all_at)}")
     return t
 
 
@@ -308,7 +349,9 @@ def main():
         check_duplicates_flagged(text),
         check_wrong_pages_fixed(text),
         check_title_change_upgraded(text),
+        check_hallucinated_metadata_fixed(text),
         check_published_article_not_downgraded(text),
+        check_hallucinated_entry_flagged(text),
     ]
 
     print("=" * 50)

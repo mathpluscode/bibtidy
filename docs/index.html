@@ -27,6 +27,9 @@
     --badge-dup-bg: #fff8c5;
     --badge-dup-text: #9a6700;
     --badge-dup-border: #d4a72c;
+    --badge-notfound-bg: #ffebe9;
+    --badge-notfound-text: #cf222e;
+    --badge-notfound-border: #ff8182;
     --badge-ok-bg: #f6f8fa;
     --badge-ok-text: #656d76;
     --badge-ok-border: #d0d7de;
@@ -57,6 +60,9 @@
       --badge-dup-bg: #d2992233;
       --badge-dup-text: #e3b341;
       --badge-dup-border: #d2992266;
+      --badge-notfound-bg: #8e131333;
+      --badge-notfound-text: #ff7b72;
+      --badge-notfound-border: #da363366;
       --badge-ok-bg: #30363d;
       --badge-ok-text: #8b949e;
       --badge-ok-border: #30363d;
@@ -199,6 +205,7 @@
   .badge-fix { background: var(--badge-fix-bg); color: var(--badge-fix-text); border: 1px solid var(--badge-fix-border); }
   .badge-upgrade { background: var(--badge-upgrade-bg); color: var(--badge-upgrade-text); border: 1px solid var(--badge-upgrade-border); }
   .badge-duplicate { background: var(--badge-dup-bg); color: var(--badge-dup-text); border: 1px solid var(--badge-dup-border); }
+  .badge-notfound { background: var(--badge-notfound-bg); color: var(--badge-notfound-text); border: 1px solid var(--badge-notfound-border); }
   .badge-ok { background: var(--badge-ok-bg); color: var(--badge-ok-text); border: 1px solid var(--badge-ok-border); }
 
   .diff-body {
@@ -281,12 +288,49 @@
 
 <div class="diff-card">
   <div class="diff-header">
+    <span class="diff-title">Hallucinated reference (<a href="https://openreview.net/forum?id=75SJoY9gTN" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://openreview.net/forum?id=75SJoY9gTN</a>)</span>
+    <span class="stats"><span class="add-count">+1</span> <span class="del-count">-6</span></span>
+    <span class="diff-badge badge-notfound">not found</span>
+  </div>
+  <div class="diff-body">
+    <div class="diff-line add">+% bibtidy: NOT FOUND — no matching paper on CrossRef or web search; verify this reference exists</div>
+    <div class="diff-line del">-@article{wang2021identity,</div>
+    <div class="diff-line del">-  title={On the identity of the representation learned by pre-trained language models},</div>
+    <div class="diff-line del">-  author={Wang, Zijie J and Choi, Yuhao and Wei, Dongyeop},</div>
+    <div class="diff-line del">-  journal={arXiv preprint arXiv:2109.01819},</div>
+    <div class="diff-line del">-  year={2021}</div>
+    <div class="diff-line del">-}</div>
+  </div>
+</div>
+
+<div class="diff-card">
+  <div class="diff-header">
+    <span class="diff-title">Hallucinated metadata (real paper, wrong title and authors)</span>
+    <span class="stats"><span class="add-count">+4</span> <span class="del-count">-2</span></span>
+    <span class="diff-badge badge-fix">fix</span>
+  </div>
+  <div class="diff-body">
+    <div class="diff-line add">+% bibtidy: <a href="https://openreview.net/forum?id=HSi4VetQLj" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://openreview.net/forum?id=HSi4VetQLj</a></div>
+    <div class="diff-line add">+% bibtidy: corrected title and authors</div>
+    <div class="diff-line ctx"> @inproceedings{aichberger2025semantically,</div>
+    <div class="diff-line del">-  title={Semantically Diverse Language Generation},</div>
+    <div class="diff-line del">-  author={Aichberger, Franz and Chen, Lily and Smith, John},</div>
+    <div class="diff-line add">+  title={Improving Uncertainty Estimation through Semantically Diverse Language Generation},</div>
+    <div class="diff-line add">+  author={Aichberger, Lukas and Schweighofer, Kajetan and Ielanskyi, Mykyta and Hochreiter, Sepp},</div>
+    <div class="diff-line ctx">   booktitle={International Conference on Learning Representations},</div>
+    <div class="diff-line ctx">   year={2025}</div>
+    <div class="diff-line ctx"> }</div>
+  </div>
+</div>
+
+<div class="diff-card">
+  <div class="diff-header">
     <span class="diff-title">Wrong co-author (editor listed as author)</span>
     <span class="stats"><span class="add-count">+5</span> <span class="del-count">-3</span></span>
     <span class="diff-badge badge-fix">author fix</span>
   </div>
   <div class="diff-body">
-    <div class="diff-line add">+% bibtidy: source <a href="https://jmlr.org/papers/v6/hyvarinen05a.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://jmlr.org/papers/v6/hyvarinen05a.html</a></div>
+    <div class="diff-line add">+% bibtidy: <a href="https://jmlr.org/papers/v6/hyvarinen05a.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://jmlr.org/papers/v6/hyvarinen05a.html</a></div>
     <div class="diff-line add">+% bibtidy: removed &quot;Dayan, Peter&quot; — journal editor, not co-author; number 4 → 24</div>
     <div class="diff-line ctx"> @article{hyvarinen2005estimation,</div>
     <div class="diff-line del">-  title={Estimation of non-normalized statistical models by score matching.},</div>
@@ -309,7 +353,7 @@
     <span class="diff-badge badge-upgrade">preprint &#8594; published</span>
   </div>
   <div class="diff-body">
-    <div class="diff-line add">+% bibtidy: source <a href="https://openreview.net/forum?id=PqvMRDCJT9t" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://openreview.net/forum?id=PqvMRDCJT9t</a></div>
+    <div class="diff-line add">+% bibtidy: <a href="https://openreview.net/forum?id=PqvMRDCJT9t" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://openreview.net/forum?id=PqvMRDCJT9t</a></div>
     <div class="diff-line add">+% bibtidy: published at ICLR 2023 (was arXiv preprint)</div>
     <div class="diff-line del">-@article{lipman2022flow,</div>
     <div class="diff-line add">+@inproceedings{lipman2022flow,</div>
@@ -330,7 +374,7 @@
     <span class="diff-badge badge-fix">formatting fix</span>
   </div>
   <div class="diff-body">
-    <div class="diff-line add">+% bibtidy: source <a href="https://doi.org/10.48550/arXiv.2006.11239" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.48550/arXiv.2006.11239</a></div>
+    <div class="diff-line add">+% bibtidy: <a href="https://doi.org/10.48550/arXiv.2006.11239" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.48550/arXiv.2006.11239</a></div>
     <div class="diff-line add">+% bibtidy: stripped DOI URL prefix, fixed page range hyphen</div>
     <div class="diff-line ctx"> @article{ho2020denoising,</div>
     <div class="diff-line ctx">   title={Denoising diffusion probabilistic models},</div>
@@ -378,12 +422,11 @@
 <div class="diff-card">
   <div class="diff-header">
     <span class="diff-title">Wrong page numbers (should be corrected via CrossRef)</span>
-    <span class="stats"><span class="add-count">+4</span> <span class="del-count">-1</span></span>
+    <span class="stats"><span class="add-count">+3</span> <span class="del-count">-1</span></span>
     <span class="diff-badge badge-fix">page fix</span>
   </div>
   <div class="diff-body">
-    <div class="diff-line add">+% bibtidy: source <a href="https://doi.org/10.1109/iccv48922.2021.00717" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.1109/iccv48922.2021.00717</a></div>
-    <div class="diff-line add">+% bibtidy: crossref <a href="https://doi.org/10.1109/iccv48922.2021.00717" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.1109/iccv48922.2021.00717</a></div>
+    <div class="diff-line add">+% bibtidy: <a href="https://doi.org/10.1109/iccv48922.2021.00717" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.1109/iccv48922.2021.00717</a></div>
     <div class="diff-line add">+% bibtidy: corrected page range 7262--7272 → 7242--7252</div>
     <div class="diff-line ctx"> @inproceedings{strudel2021segmenter,</div>
     <div class="diff-line ctx">   title={Segmenter: Transformer for semantic segmentation},</div>
@@ -399,12 +442,11 @@
 <div class="diff-card">
   <div class="diff-header">
     <span class="diff-title">arXiv preprint where published title changed</span>
-    <span class="stats"><span class="add-count">+7</span> <span class="del-count">-3</span></span>
+    <span class="stats"><span class="add-count">+6</span> <span class="del-count">-3</span></span>
     <span class="diff-badge badge-upgrade">preprint &#8594; published</span>
   </div>
   <div class="diff-body">
-    <div class="diff-line add">+% bibtidy: source <a href="https://doi.org/10.1038/s41598-023-34341-2" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.1038/s41598-023-34341-2</a></div>
-    <div class="diff-line add">+% bibtidy: crossref <a href="https://doi.org/10.1038/s41598-023-34341-2" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.1038/s41598-023-34341-2</a></div>
+    <div class="diff-line add">+% bibtidy: <a href="https://doi.org/10.1038/s41598-023-34341-2" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.1038/s41598-023-34341-2</a></div>
     <div class="diff-line add">+% bibtidy: updated from arXiv to published version (Scientific Reports 2023), title updated</div>
     <div class="diff-line ctx"> @article{khader2022medical,</div>
     <div class="diff-line del">-  title={Medical Diffusion--Denoising Diffusion Probabilistic Models for 3D Medical Image Generation},</div>
@@ -421,31 +463,6 @@
 
 <div class="diff-card">
   <div class="diff-header">
-    <span class="diff-title">Published article should not be downgraded to preprint</span>
-    <span class="stats"><span class="add-count">+5</span> <span class="del-count">-2</span></span>
-    <span class="diff-badge badge-fix">metadata fix</span>
-  </div>
-  <div class="diff-body">
-    <div class="diff-line add">+% bibtidy: source <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0261045" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0261045</a></div>
-    <div class="diff-line add">+% bibtidy: crossref <a href="https://doi.org/10.1371/journal.pone.0261045" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">https://doi.org/10.1371/journal.pone.0261045</a></div>
-    <div class="diff-line add">+% bibtidy: fixed journal casing; corrected author compound surname Kosakovsky Pond</div>
-    <div class="diff-line ctx"> @article{tzou2022coronavirus,</div>
-    <div class="diff-line ctx">   title={Coronavirus Resistance Database (CoV-RDB): SARS-CoV-2 susceptibility to monoclonal antibodies, convalescent plasma, and plasma from vaccinated persons},</div>
-    <div class="diff-line del">-  author={Tzou, Philip L and Tao, Kaiming and Pond, Sergei L Kosakovsky and Shafer, Robert W},</div>
-    <div class="diff-line del">-  journal={Plos one},</div>
-    <div class="diff-line add">+  author={Tzou, Philip L. and Tao, Kaiming and Kosakovsky Pond, Sergei L. and Shafer, Robert W.},</div>
-    <div class="diff-line add">+  journal={PLoS ONE},</div>
-    <div class="diff-line ctx">   volume={17},</div>
-    <div class="diff-line ctx">   number={3},</div>
-    <div class="diff-line ctx">   pages={e0261045},</div>
-    <div class="diff-line ctx">   year={2022},</div>
-    <div class="diff-line ctx">   publisher={Public Library of Science San Francisco, CA USA}</div>
-    <div class="diff-line ctx"> }</div>
-  </div>
-</div>
-
-<div class="diff-card">
-  <div class="diff-header">
     <span class="diff-title">Correct entry (should be left unchanged)</span>
     <span class="diff-badge badge-ok">unchanged</span>
   </div>
@@ -456,6 +473,25 @@
     <div class="diff-line ctx">   booktitle={Advances in Neural Information Processing Systems},</div>
     <div class="diff-line ctx">   volume={30},</div>
     <div class="diff-line ctx">   year={2017}</div>
+    <div class="diff-line ctx"> }</div>
+  </div>
+</div>
+
+<div class="diff-card">
+  <div class="diff-header">
+    <span class="diff-title">Published article should not be downgraded to preprint</span>
+    <span class="diff-badge badge-ok">unchanged</span>
+  </div>
+  <div class="diff-body">
+    <div class="diff-line ctx"> @article{tzou2022coronavirus,</div>
+    <div class="diff-line ctx">   title={Coronavirus Resistance Database (CoV-RDB): SARS-CoV-2 susceptibility to monoclonal antibodies, convalescent plasma, and plasma from vaccinated persons},</div>
+    <div class="diff-line ctx">   author={Tzou, Philip L and Tao, Kaiming and Pond, Sergei L Kosakovsky and Shafer, Robert W},</div>
+    <div class="diff-line ctx">   journal={Plos one},</div>
+    <div class="diff-line ctx">   volume={17},</div>
+    <div class="diff-line ctx">   number={3},</div>
+    <div class="diff-line ctx">   pages={e0261045},</div>
+    <div class="diff-line ctx">   year={2022},</div>
+    <div class="diff-line ctx">   publisher={Public Library of Science San Francisco, CA USA}</div>
     <div class="diff-line ctx"> }</div>
   </div>
 </div>

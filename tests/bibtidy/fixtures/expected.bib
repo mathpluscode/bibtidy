@@ -5,6 +5,31 @@
 
 @preamble{"Managed by bibtidy — do not edit metadata comments"}
 
+% Hallucinated reference (https://openreview.net/forum?id=75SJoY9gTN)
+% bibtidy: NOT FOUND — no matching paper on CrossRef or web search; verify this reference exists
+% @article{wang2021identity,
+%   title={On the identity of the representation learned by pre-trained language models},
+%   author={Wang, Zijie J and Choi, Yuhao and Wei, Dongyeop},
+%   journal={arXiv preprint arXiv:2109.01819},
+%   year={2021}
+% }
+
+% Hallucinated metadata (real paper, wrong title and authors)
+% @inproceedings{aichberger2025semantically,
+%   title={Semantically Diverse Language Generation},
+%   author={Aichberger, Franz and Chen, Lily and Smith, John},
+%   booktitle={International Conference on Learning Representations},
+%   year={2025}
+% }
+% bibtidy: https://openreview.net/forum?id=HSi4VetQLj
+% bibtidy: corrected title and authors
+@inproceedings{aichberger2025semantically,
+  title={Improving Uncertainty Estimation through Semantically Diverse Language Generation},
+  author={Aichberger, Lukas and Schweighofer, Kajetan and Ielanskyi, Mykyta and Hochreiter, Sepp},
+  booktitle={International Conference on Learning Representations},
+  year={2025}
+}
+
 % Correct entry (should be left unchanged)
 @inproceedings{vaswani2017attention,
   title={Attention is All you Need},
@@ -23,7 +48,7 @@
 %   number={4},
 %   year={2005}
 % }
-% bibtidy: source https://jmlr.org/papers/v6/hyvarinen05a.html
+% bibtidy: https://jmlr.org/papers/v6/hyvarinen05a.html
 % bibtidy: removed "Dayan, Peter" — journal editor, not co-author; number 4 → 24
 @article{hyvarinen2005estimation,
   title={Estimation of non-normalized statistical models by score matching},
@@ -41,7 +66,7 @@
 %   journal={arXiv preprint arXiv:2210.02747},
 %   year={2022}
 % }
-% bibtidy: source https://openreview.net/forum?id=PqvMRDCJT9t
+% bibtidy: https://openreview.net/forum?id=PqvMRDCJT9t
 % bibtidy: published at ICLR 2023 (was arXiv preprint)
 @inproceedings{lipman2022flow,
   title={Flow matching for generative modeling},
@@ -60,7 +85,7 @@
 %   year={2020},
 %   doi={https://doi.org/10.48550/arXiv.2006.11239}
 % }
-% bibtidy: source https://doi.org/10.48550/arXiv.2006.11239
+% bibtidy: https://doi.org/10.48550/arXiv.2006.11239
 % bibtidy: stripped DOI URL prefix, fixed page range hyphen
 @article{ho2020denoising,
   title={Denoising diffusion probabilistic models},
@@ -101,8 +126,7 @@
 %   pages={7262--7272},
 %   year={2021}
 % }
-% bibtidy: source https://doi.org/10.1109/iccv48922.2021.00717
-% bibtidy: crossref https://doi.org/10.1109/iccv48922.2021.00717
+% bibtidy: https://doi.org/10.1109/iccv48922.2021.00717
 % bibtidy: corrected page range 7262--7272 → 7242--7252
 @inproceedings{strudel2021segmenter,
   title={Segmenter: Transformer for semantic segmentation},
@@ -119,8 +143,7 @@
 %   journal={arXiv preprint arXiv:2211.03364},
 %   year={2022}
 % }
-% bibtidy: source https://doi.org/10.1038/s41598-023-34341-2
-% bibtidy: crossref https://doi.org/10.1038/s41598-023-34341-2
+% bibtidy: https://doi.org/10.1038/s41598-023-34341-2
 % bibtidy: updated from arXiv to published version (Scientific Reports 2023), title updated
 @article{khader2022medical,
   title={Denoising Diffusion Probabilistic Models for 3D Medical Image Generation},
@@ -131,23 +154,10 @@
 }
 
 % Published article should not be downgraded to preprint
-% @article{tzou2022coronavirus,
-%   title={Coronavirus Resistance Database (CoV-RDB): SARS-CoV-2 susceptibility to monoclonal antibodies, convalescent plasma, and plasma from vaccinated persons},
-%   author={Tzou, Philip L and Tao, Kaiming and Pond, Sergei L Kosakovsky and Shafer, Robert W},
-%   journal={Plos one},
-%   volume={17},
-%   number={3},
-%   pages={e0261045},
-%   year={2022},
-%   publisher={Public Library of Science San Francisco, CA USA}
-% }
-% bibtidy: source https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0261045
-% bibtidy: crossref https://doi.org/10.1371/journal.pone.0261045
-% bibtidy: fixed journal casing; corrected author compound surname Kosakovsky Pond
 @article{tzou2022coronavirus,
   title={Coronavirus Resistance Database (CoV-RDB): SARS-CoV-2 susceptibility to monoclonal antibodies, convalescent plasma, and plasma from vaccinated persons},
-  author={Tzou, Philip L. and Tao, Kaiming and Kosakovsky Pond, Sergei L. and Shafer, Robert W.},
-  journal={PLoS ONE},
+  author={Tzou, Philip L and Tao, Kaiming and Pond, Sergei L Kosakovsky and Shafer, Robert W},
+  journal={Plos one},
   volume={17},
   number={3},
   pages={e0261045},

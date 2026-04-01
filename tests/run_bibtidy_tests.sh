@@ -12,7 +12,7 @@ INPUT="$SCRIPT_DIR/bibtidy/fixtures/input.bib"
 EXPECTED="$SCRIPT_DIR/bibtidy/fixtures/expected.bib"
 GOT="$SCRIPT_DIR/bibtidy/fixtures/got.bib"
 VALIDATOR="$SCRIPT_DIR/bibtidy/validate.py"
-FORMAT_VALIDATOR="$REPO_DIR/skills/bibtidy/tools/fmt.py"
+
 
 # Run unit tests first — fail fast before the slower Claude invocation
 echo "=> Running unit tests..."
@@ -31,10 +31,6 @@ echo "=> Synced skill to $SKILL_DST"
 
 # Copy input to got.bib — bibtidy edits this copy in-place
 cp "$INPUT" "$GOT"
-ORIG=$(mktemp)
-cp "$INPUT" "$ORIG"
-trap 'rm -f "$ORIG" 2>/dev/null' EXIT
-
 ENTRY_COUNT=$(grep '^@' "$GOT" | grep -cv '^@\(string\|preamble\|comment\)')
 echo "=> Found $ENTRY_COUNT entries in test fixture"
 echo "=> Running bibtidy..."
@@ -50,23 +46,7 @@ ELAPSED=$(( SECONDS - START_TIME ))
 echo ""
 echo "=> bibtidy complete in ${ELAPSED}s ($ENTRY_COUNT entries)."
 
-FAILURES=0
-
-echo ""
-echo "=> Format validation..."
-python3 "$FORMAT_VALIDATOR" "$ORIG" "$GOT" || FAILURES=$((FAILURES + 1))
-rm -f "$ORIG"
-
 echo ""
 echo "=> Structural validation..."
 echo ""
-python3 "$VALIDATOR" "$GOT" || FAILURES=$((FAILURES + 1))
-
-if [[ $FAILURES -gt 0 ]]; then
-    echo ""
-    echo "=> FAILED: $FAILURES check(s) did not pass"
-    exit 1
-else
-    echo ""
-    echo "=> ALL CHECKS PASSED"
-fi
+python3 "$VALIDATOR" "$GOT"

@@ -7,14 +7,7 @@ import pytest
 
 from duplicates import parse_bib_entries
 
-from validate import (
-    find_entry_block,
-    find_commented_entry,
-    get_field,
-    has_bibtidy_comment,
-    has_crossref_url,
-    has_source_url,
-)
+from validate import find_entry_block, find_commented_entry, get_field, has_bibtidy_comment, has_url
 
 
 SAMPLE_ENTRY = "@article{Smith2020,\n  title={A {Nested} Title},\n  author={Smith, John},\n  year={2020}\n}"
@@ -23,8 +16,7 @@ SAMPLE_CHANGED = (
     "% @article{Smith2020,\n"
     "%   title={Old Title},\n"
     "% }\n"
-    "% bibtidy: source https://doi.org/10.1234/test\n"
-    "% bibtidy: crossref https://doi.org/10.1234/test\n"
+    "% bibtidy: https://doi.org/10.1234/test\n"
     "% bibtidy: fixed title\n"
     "@article{Smith2020,\n"
     "  title={New Title},\n"
@@ -119,17 +111,11 @@ class TestHasBibtidyComment:
     def test_not_found(self):
         assert has_bibtidy_comment(SAMPLE_ENTRY, "Smith2020", r"% bibtidy:") is False
 
-    def test_source_url(self):
-        assert has_source_url(SAMPLE_CHANGED, "Smith2020") is True
+    def test_has_url(self):
+        assert has_url(SAMPLE_CHANGED, "Smith2020") is True
 
-    def test_crossref_url(self):
-        assert has_crossref_url(SAMPLE_CHANGED, "Smith2020") is True
-
-    def test_no_crossref_url(self):
-        assert has_crossref_url(SAMPLE_ENTRY, "Smith2020") is False
-
-    def test_no_source_url(self):
-        assert has_source_url(SAMPLE_ENTRY, "Smith2020") is False
+    def test_no_url(self):
+        assert has_url(SAMPLE_ENTRY, "Smith2020") is False
 
     def test_duplicate_flag(self):
         text = "% bibtidy: DUPLICATE of Other — consider removing\n@article{Dup,\n  title={Test}\n}"
@@ -178,14 +164,21 @@ EXPECTED_DIFFS = {
         "volume": (None, "13"),
         "year": ("2022", "2023"),
     },
-    "tzou2022coronavirus": {
-        "author": (
-            "Tzou, Philip L and Tao, Kaiming and Pond, Sergei L Kosakovsky and Shafer, Robert W",
-            "Tzou, Philip L. and Tao, Kaiming and Kosakovsky Pond, Sergei L. and Shafer, Robert W.",
+    "tzou2022coronavirus": {},
+    "aichberger2025semantically": {
+        "title": (
+            "Semantically Diverse Language Generation",
+            "Improving Uncertainty Estimation through Semantically Diverse Language Generation",
         ),
-        "journal": ("Plos one", "PLoS ONE"),
+        "author": (
+            "Aichberger, Franz and Chen, Lily and Smith, John",
+            "Aichberger, Lukas and Schweighofer, Kajetan and Ielanskyi, Mykyta and Hochreiter, Sepp",
+        ),
     },
 }
+
+# Entries that are commented out in expected.bib (e.g. hallucinated references).
+EXPECTED_COMMENTED_OUT = {"wang2021identity"}
 
 
 class TestFixtureDiffs:
@@ -199,11 +192,23 @@ class TestFixtureDiffs:
             expected_entries = {e["key"]: e for e in parse_bib_entries(f.read())}
         return input_entries, expected_entries
 
+    def test_commented_out_entries_present(self, entries):
+        """Fail if EXPECTED_COMMENTED_OUT names an entry not commented in expected.bib."""
+        with open(os.path.join(FIXTURES_DIR, "expected.bib")) as f:
+            expected_text = f.read()
+        missing = []
+        for key in EXPECTED_COMMENTED_OUT:
+            if not find_commented_entry(expected_text, key):
+                missing.append(f"  {key}: not found as a commented-out entry in expected.bib")
+        assert not missing, "EXPECTED_COMMENTED_OUT entries missing from expected.bib:\n" + "\n".join(missing)
+
     def test_no_undeclared_diffs(self, entries):
         """Fail if expected.bib has field changes not listed in EXPECTED_DIFFS."""
         input_entries, expected_entries = entries
         undeclared = []
         for key in input_entries:
+            if key in EXPECTED_COMMENTED_OUT:
+                continue
             inp = input_entries[key]
             exp = expected_entries.get(key)
             if exp is None:

@@ -16,9 +16,8 @@ bibtools/
 │           ├── compare.py      ← field-level comparison
 │           ├── crossref.py     ← CrossRef API client
 │           ├── duplicates.py   ← duplicate detector
-│           └── fmt.py          ← output format validator
+│           └── edit.py         ← programmatic .bib editor
 ├── tests/
-│   ├── conftest.py             ← pytest path setup
 │   ├── test_version.py         ← version sync check
 │   ├── run_bibtidy_tests.sh    ← end-to-end test runner
 │   └── bibtidy/
@@ -29,7 +28,7 @@ bibtools/
 │       ├── test_compare.py     ← unit tests for compare.py
 │       ├── test_crossref.py    ← unit tests for crossref.py
 │       ├── test_duplicates.py  ← unit tests for duplicates.py
-│       ├── test_fmt.py         ← unit tests for fmt.py
+│       ├── test_edit.py        ← unit tests for edit.py
 │       └── test_validate.py    ← unit tests for validate.py
 ├── pyproject.toml              ← project config and pytest settings
 ├── CLAUDE.md

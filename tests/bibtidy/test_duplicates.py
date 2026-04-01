@@ -332,7 +332,7 @@ class TestCommentedOutEntries:
 %   number={4},
 %   year={2005}
 % }
-% bibtidy: source https://jmlr.org/papers/v6/hyvarinen05a.html
+% bibtidy: https://jmlr.org/papers/v6/hyvarinen05a.html
 @article{hyvarinen2005estimation,
   title={Estimation of non-normalized statistical models by score matching},
   author={Hyv{\\"a}rinen, Aapo},

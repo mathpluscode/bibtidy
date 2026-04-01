@@ -2,7 +2,7 @@
 
 A bibliography toolkit for LaTeX, built as a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin.
 
-- **[bibtidy](#bibtidy)** — Cross-check BibTeX entries against Google Scholar, CrossRef, and conference/journal sites. Upgrades arXiv/bioRxiv preprints to published versions (even when the title changed upon publication), corrects metadata (authors, pages, venues), and flags semantic duplicates (e.g. a preprint and its published version cited separately).
+**[bibtidy](#bibtidy)** — Cross-check BibTeX entries against Google Scholar, CrossRef, and conference/journal sites. Upgrades arXiv/bioRxiv preprints to published versions (even when the title changed upon publication), corrects metadata (authors, pages, venues), and flags semantic duplicates (e.g. a preprint and its published version cited separately).
 
 ![bibtidy demo](docs/bibtidy_demo.gif)
 
@@ -32,7 +32,7 @@ Reload plugins:
 /bibtidy refs.bib
 ```
 
-bibtidy verifies each entry against [Google Scholar](https://scholar.google.com/) and [CrossRef](https://search.crossref.org/), fixes errors, and upgrades stale preprints to published versions. Every change includes the original entry commented out above so you can compare or revert, plus a `% bibtidy: source` URL for verification. If CrossRef has a match for an entry that bibtidy changes, it also adds `% bibtidy: crossref <URL>` so you can see exactly which CrossRef record was available. We recommend using git to track changes. If using [Overleaf](https://www.overleaf.com/), this can be done with [git sync](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization). To remove bibtidy comments after review, ask Claude: "remove all bibtidy comments from refs.bib".
+bibtidy verifies each entry against [Google Scholar](https://scholar.google.com/) and [CrossRef](https://search.crossref.org/), fixes errors, and upgrades stale preprints to published versions. Every change includes the original entry commented out above so you can compare or revert, plus a `% bibtidy:` URL for verification. We recommend using git to track changes. If using [Overleaf](https://www.overleaf.com/), this can be done with [git sync](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization). To remove bibtidy comments after review, ask Claude: "remove all bibtidy comments from refs.bib".
 
 Note that bibtidy assumes standard brace-style BibTeX like `@article{...}`. Parenthesized forms like `@article(...)` are not supported; convert them to brace style first.
 
@@ -40,7 +40,66 @@ Note that bibtidy assumes standard brace-style BibTeX like `@article{...}`. Pare
 ### Examples
 
 <details>
-<summary><b>Example 1</b>: Google Scholar adds editors as co-authors (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Estimation+of+non-normalized+statistical+models+by+score+matching&btnG=">source</a>)</summary>
+<summary><b>Example 1</b>: Hallucinated reference flagged and commented out (<a href="https://openreview.net/forum?id=75SJoY9gTN">source</a>)</summary>
+
+Before:
+```bibtex
+@article{wang2021identity,
+  title={On the identity of the representation learned by pre-trained language models},
+  author={Wang, Zijie J and Choi, Yuhao and Wei, Dongyeop},
+  journal={arXiv preprint arXiv:2109.01819},
+  year={2021}
+}
+```
+
+After:
+```bibtex
+% bibtidy: NOT FOUND — no matching paper on CrossRef or web search; verify this reference exists
+% @article{wang2021identity,
+%   title={On the identity of the representation learned by pre-trained language models},
+%   author={Wang, Zijie J and Choi, Yuhao and Wei, Dongyeop},
+%   journal={arXiv preprint arXiv:2109.01819},
+%   year={2021}
+% }
+```
+
+</details>
+
+<details>
+<summary><b>Example 2</b>: Hallucinated metadata corrected (<a href="https://openreview.net/forum?id=HSi4VetQLj">source</a>)</summary>
+
+Before:
+```bibtex
+@inproceedings{aichberger2025semantically,
+  title={Semantically Diverse Language Generation},
+  author={Aichberger, Franz and Chen, Lily and Smith, John},
+  booktitle={International Conference on Learning Representations},
+  year={2025}
+}
+```
+
+After:
+```bibtex
+% @inproceedings{aichberger2025semantically,
+%   title={Semantically Diverse Language Generation},
+%   author={Aichberger, Franz and Chen, Lily and Smith, John},
+%   booktitle={International Conference on Learning Representations},
+%   year={2025}
+% }
+% bibtidy: https://openreview.net/forum?id=HSi4VetQLj
+% bibtidy: corrected title and authors
+@inproceedings{aichberger2025semantically,
+  title={Improving Uncertainty Estimation through Semantically Diverse Language Generation},
+  author={Aichberger, Lukas and Schweighofer, Kajetan and Ielanskyi, Mykyta and Hochreiter, Sepp},
+  booktitle={International Conference on Learning Representations},
+  year={2025}
+}
+```
+
+</details>
+
+<details>
+<summary><b>Example 3</b>: Google Scholar adds editors as co-authors (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Estimation+of+non-normalized+statistical+models+by+score+matching&btnG=">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -64,7 +123,7 @@ After:
 %   number={4},
 %   year={2005}
 % }
-% bibtidy: source https://jmlr.org/papers/v6/hyvarinen05a.html
+% bibtidy: https://jmlr.org/papers/v6/hyvarinen05a.html
 % bibtidy: removed "Dayan, Peter" — journal editor, not co-author; number 4 → 24
 @article{hyvarinen2005estimation,
   title={Estimation of non-normalized statistical models by score matching},
@@ -79,7 +138,7 @@ After:
 </details>
 
 <details>
-<summary><b>Example 2</b>: arXiv preprint upgraded to published version (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Flow+matching+for+generative+modeling&btnG=">source</a>)</summary>
+<summary><b>Example 4</b>: arXiv preprint upgraded to published version (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Flow+matching+for+generative+modeling&btnG=">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -99,7 +158,7 @@ After:
 %   journal={arXiv preprint arXiv:2210.02747},
 %   year={2022}
 % }
-% bibtidy: source https://openreview.net/forum?id=PqvMRDCJT9t
+% bibtidy: https://openreview.net/forum?id=PqvMRDCJT9t
 % bibtidy: published at ICLR 2023 (was arXiv preprint)
 @inproceedings{lipman2022flow,
   title={Flow matching for generative modeling},
@@ -112,7 +171,7 @@ After:
 </details>
 
 <details>
-<summary><b>Example 3</b>: arXiv preprint upgraded to published version with title change</summary>
+<summary><b>Example 5</b>: arXiv preprint upgraded to published version with title change</summary>
 
 Before:
 ```bibtex
@@ -132,8 +191,7 @@ After:
 %   journal={arXiv preprint arXiv:2211.03364},
 %   year={2022}
 % }
-% bibtidy: source https://doi.org/10.1038/s41598-023-34341-2
-% bibtidy: crossref https://doi.org/10.1038/s41598-023-34341-2
+% bibtidy: https://doi.org/10.1038/s41598-023-34341-2
 % bibtidy: updated from arXiv to published version (Scientific Reports 2023), title updated
 @article{khader2022medical,
   title={Denoising Diffusion Probabilistic Models for 3D Medical Image Generation},
@@ -147,7 +205,7 @@ After:
 </details>
 
 <details>
-<summary><b>Example 4</b>: Wrong page numbers corrected via CrossRef (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Segmenter%3A+Transformer+for+semantic+segmentation&btnG=">source</a>)</summary>
+<summary><b>Example 6</b>: Wrong page numbers corrected via CrossRef (<a href="https://scholar.google.co.uk/scholar?hl=en&as_sdt=0%2C5&q=Segmenter%3A+Transformer+for+semantic+segmentation&btnG=">source</a>)</summary>
 
 Before:
 ```bibtex
@@ -169,8 +227,7 @@ After:
 %   pages={7262--7272},
 %   year={2021}
 % }
-% bibtidy: source https://doi.org/10.1109/iccv48922.2021.00717
-% bibtidy: crossref https://doi.org/10.1109/iccv48922.2021.00717
+% bibtidy: https://doi.org/10.1109/iccv48922.2021.00717
 % bibtidy: corrected page range 7262--7272 → 7242--7252
 @inproceedings{strudel2021segmenter,
   title={Segmenter: Transformer for semantic segmentation},
@@ -184,7 +241,7 @@ After:
 </details>
 
 <details>
-<summary><b>Example 5</b>: bioRxiv preprint duplicated with published version</summary>
+<summary><b>Example 7</b>: bioRxiv preprint duplicated with published version</summary>
 
 Before:
 ```bibtex
@@ -235,25 +292,37 @@ After:
 
 ## FAQ
 
-**How can I trust the output?**
-
-You shouldn't — and that's by design. The point of bibtidy is to surface potential hallucinations and errors in your bibliography. For every changed entry, bibtidy includes a `% bibtidy: source` URL so you can verify the correction yourself. Entries marked unchanged are very likely correct, but not guaranteed. Always check the provided links before accepting changes.
-
-**Why does bibtidy flag so many page number errors?**
-
-Google Scholar extracts metadata by scraping PDFs rather than querying publisher databases, so page numbers are frequently incorrect. Even official sources can disagree — for example, the same CVPR 2020 paper "Momentum Contrast for Unsupervised Visual Representation Learning" has pages 9729--9738 on [CVF Open Access](https://openaccess.thecvf.com/content_CVPR_2020/html/He_Momentum_Contrast_for_Unsupervised_Visual_Representation_Learning_CVPR_2020_paper.html) but pages 9726--9735 on [IEEE Xplore](https://ieeexplore.ieee.org/document/9157636), because IEEE re-paginates when compiling the full proceedings volume. bibtidy uses CrossRef as the authoritative source for page numbers. CrossRef gets metadata directly from publishers via DOI registration, so for IEEE/CVF conferences it returns the IEEE Xplore pagination (9726--9735 in the example above). When sources conflict, bibtidy applies the DOI-linked version and flags the entry with `% bibtidy: REVIEW` so you can verify.
-
-**Why a Claude Code plugin instead of a Python package?**
-
-The core challenge is reliable access to bibliographic data:
-
-- **bibtidy** needs to search Google Scholar, CrossRef, and conference/journal sites. Google Scholar has no official API and bans scrapers; Semantic Scholar's public API (1,000 req/s) is shared globally so availability is unpredictable. Claude Code's built-in web search sidesteps both problems — no API keys, no shared rate limits. Citation metadata (title, authors, venue, year) is almost never behind a paywall, so Claude can simply visit the publisher page and read the correct information.
-
-Building on Claude Code also keeps the codebase small — the plugin reuses existing search and editing capabilities rather than reimplementing HTTP clients, parsers, and retry logic.
+### General
 
 **Do I need Claude Code?**
 
-Yes. bibtidy is currently a Claude Code plugin only. If there's demand to support other platforms (e.g. Codex), we'll consider adding it.
+Yes. bibtools is currently a Claude Code plugin only. If there's demand to support other platforms (e.g. Codex), we'll consider adding it.
+
+**Why a Claude Code plugin instead of a Python package?**
+
+Building on Claude Code keeps the codebase small, the plugin reuses existing search and editing capabilities rather than reimplementing HTTP clients, parsers, and retry logic.
+
+bibtidy needs to search Google Scholar, CrossRef, and conference/journal sites. Google Scholar has no official API and bans scrapers; Semantic Scholar's public API (1,000 req/s) is shared globally so availability is unpredictable. Claude Code's built-in web search sidesteps both problems, no API keys, no shared rate limits. Citation metadata (title, authors, venue, year) is almost never behind a paywall, so Claude can simply visit the publisher page and read the correct information.
+
+### bibtidy
+
+**How can I trust bibtidy's output?**
+
+You shouldn't, and that's by design. The point of bibtidy is to surface potential hallucinations and errors in your bibliography. For every changed entry, bibtidy includes a `% bibtidy:` URL so you can verify the correction yourself. Entries marked unchanged are very likely correct, but not guaranteed. Always check the provided links before accepting changes.
+
+**How does bibtidy compare to other tools?**
+
+[CiteAudit](https://arxiv.org/abs/2602.23452) verifies bibliographic metadata but is a closed system. bibtidy is fully open-source, transparent (every change includes the original entry commented out and a source URL so you can verify exactly what changed and why), and it fixes issues (wrong authors, stale preprints, incorrect pages) directly in your .bib file rather than just flagging them.
+
+[refchecker](https://github.com/markrussinovich/refchecker) verifies references against Semantic Scholar, OpenAlex, and CrossRef, and uses LLM-powered web search to flag fabricated references. It reports problems but does not auto-fix them. bibtidy applies corrections in place so you review a diff, not a report. bibtidy also upgrades stale arXiv/bioRxiv preprints to their published versions (even when the title changed on publication), and requires no setup beyond installing the plugin.
+
+[bibtex-tidy](https://github.com/FlamingTempura/bibtex-tidy) reformats and deduplicates .bib files but does not verify metadata against external sources. bibtidy checks correctness, not just formatting.
+
+[arxiv-latex-cleaner](https://github.com/google-research/arxiv-latex-cleaner) is a file cleanup tool for arXiv submissions (removing comments, resizing figures, etc.), it does not verify or correct any bibliographic metadata.
+
+**Why does bibtidy flag so many page number errors?**
+
+Google Scholar extracts metadata by scraping PDFs rather than querying publisher databases, so page numbers are frequently incorrect. Even official sources can disagree, for example, the same CVPR 2020 paper "Momentum Contrast for Unsupervised Visual Representation Learning" has pages 9729--9738 on [CVF Open Access](https://openaccess.thecvf.com/content_CVPR_2020/html/He_Momentum_Contrast_for_Unsupervised_Visual_Representation_Learning_CVPR_2020_paper.html) but pages 9726--9735 on [IEEE Xplore](https://ieeexplore.ieee.org/document/9157636), because IEEE re-paginates when compiling the full proceedings volume. bibtidy uses CrossRef as the authoritative source for page numbers. CrossRef gets metadata directly from publishers via DOI registration, so for IEEE/CVF conferences it returns the IEEE Xplore pagination (9726--9735 in the example above). When sources conflict, bibtidy applies the DOI-linked version and flags the entry with `% bibtidy: REVIEW` so you can verify.
 
 ## License
 
