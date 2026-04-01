@@ -7,7 +7,14 @@ import pytest
 
 from duplicates import parse_bib_entries
 
-from validate import find_entry_block, find_commented_entry, get_field, has_bibtidy_comment, has_source_url
+from validate import (
+    find_entry_block,
+    find_commented_entry,
+    get_field,
+    has_bibtidy_comment,
+    has_crossref_url,
+    has_source_url,
+)
 
 
 SAMPLE_ENTRY = "@article{Smith2020,\n  title={A {Nested} Title},\n  author={Smith, John},\n  year={2020}\n}"
@@ -17,6 +24,7 @@ SAMPLE_CHANGED = (
     "%   title={Old Title},\n"
     "% }\n"
     "% bibtidy: source https://doi.org/10.1234/test\n"
+    "% bibtidy: crossref https://doi.org/10.1234/test\n"
     "% bibtidy: fixed title\n"
     "@article{Smith2020,\n"
     "  title={New Title},\n"
@@ -50,6 +58,23 @@ class TestFindEntryBlock:
         result = find_entry_block(text, "doi:10.1234/foo")
         assert result is not None
 
+    def test_parenthesized_entry_rejected(self):
+        with pytest.raises(ValueError, match="not supported"):
+            find_entry_block("@article(Smith2020,\n  title={A (Nested) Title}\n)", "Smith2020")
+
+    def test_parenthesized_text_inside_brace_comment_ignored(self):
+        text = "@comment{ignored\n  @article(ghost, title={Ignored})\n}\n@article{Real,\n  title={Shown}\n}"
+        result = find_entry_block(text, "Real")
+        assert result is not None
+        assert "title={Shown}" in result
+
+    def test_ghost_entry_inside_comment_not_found(self):
+        """Brace-style entry nested inside @comment{...} should not be found."""
+        text = "@comment{ignored\n  @article{Ghost, title={Hidden}}\n}\n@article{Real,\n  title={Shown}\n}"
+        assert find_entry_block(text, "Ghost") is None
+        result = find_entry_block(text, "Real")
+        assert result is not None
+
 
 class TestFindCommentedEntry:
     def test_found(self):
@@ -61,6 +86,15 @@ class TestFindCommentedEntry:
     def test_key_with_special_chars(self):
         text = "% @article{doi:10.1234/foo,\n%   title={Old}\n% }\n"
         assert find_commented_entry(text, "doi:10.1234/foo") is True
+
+    def test_indented_commented_entry(self):
+        """Indented commented originals like '%   @article{A,' should be found."""
+        text = "%   @article{Smith2020,\n%     title={Old},\n%   }\n@article{Smith2020,\n  title={New}\n}"
+        assert find_commented_entry(text, "Smith2020") is True
+
+    def test_parenthesized_entry_rejected(self):
+        with pytest.raises(ValueError, match="not supported"):
+            find_commented_entry("@article(Smith2020,\n  title={A}\n)", "Smith2020")
 
 
 class TestGetField:
@@ -88,12 +122,22 @@ class TestHasBibtidyComment:
     def test_source_url(self):
         assert has_source_url(SAMPLE_CHANGED, "Smith2020") is True
 
+    def test_crossref_url(self):
+        assert has_crossref_url(SAMPLE_CHANGED, "Smith2020") is True
+
+    def test_no_crossref_url(self):
+        assert has_crossref_url(SAMPLE_ENTRY, "Smith2020") is False
+
     def test_no_source_url(self):
         assert has_source_url(SAMPLE_ENTRY, "Smith2020") is False
 
     def test_duplicate_flag(self):
         text = "% bibtidy: DUPLICATE of Other — consider removing\n@article{Dup,\n  title={Test}\n}"
         assert has_bibtidy_comment(text, "Dup", r"DUPLICATE") is True
+
+    def test_parenthesized_entry_rejected(self):
+        with pytest.raises(ValueError, match="not supported"):
+            has_bibtidy_comment("@article(Smith2020,\n  title={A}\n)", "Smith2020", r"% bibtidy:")
 
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -133,6 +177,13 @@ EXPECTED_DIFFS = {
         "journal": ("arXiv preprint arXiv:2211.03364", "Scientific Reports"),
         "volume": (None, "13"),
         "year": ("2022", "2023"),
+    },
+    "tzou2022coronavirus": {
+        "author": (
+            "Tzou, Philip L and Tao, Kaiming and Pond, Sergei L Kosakovsky and Shafer, Robert W",
+            "Tzou, Philip L. and Tao, Kaiming and Kosakovsky Pond, Sergei L. and Shafer, Robert W.",
+        ),
+        "journal": ("Plos one", "PLoS ONE"),
     },
 }
 

@@ -18,17 +18,19 @@ bibkit/
 │           ├── duplicates.py   ← duplicate detector
 │           └── fmt.py          ← output format validator
 ├── tests/
-│   ├── fixtures/
-│   │   ├── input.bib           ← test input
-│   │   └── expected.bib        ← expected output
-│   ├── run.sh                  ← end-to-end test runner
-│   ├── validate.py             ← structural validation
 │   ├── conftest.py             ← pytest path setup
-│   ├── test_compare.py         ← unit tests for compare.py
-│   ├── test_crossref.py        ← unit tests for crossref.py
-│   ├── test_duplicates.py      ← unit tests for duplicates.py
-│   ├── test_fmt.py             ← unit tests for fmt.py
-│   └── test_validate.py        ← unit tests for validate.py
+│   ├── test_version.py         ← version sync check
+│   ├── run_bibtidy_tests.sh    ← end-to-end test runner
+│   └── bibtidy/
+│       ├── fixtures/
+│       │   ├── input.bib       ← test input
+│       │   └── expected.bib    ← expected output
+│       ├── validate.py         ← structural validation
+│       ├── test_compare.py     ← unit tests for compare.py
+│       ├── test_crossref.py    ← unit tests for crossref.py
+│       ├── test_duplicates.py  ← unit tests for duplicates.py
+│       ├── test_fmt.py         ← unit tests for fmt.py
+│       └── test_validate.py    ← unit tests for validate.py
 ├── pyproject.toml              ← project config and pytest settings
 ├── CLAUDE.md
 ├── LICENSE
@@ -49,5 +51,11 @@ Version is tracked in three files (`.claude-plugin/marketplace.json`, `.claude-p
 
 The skill's tools are resolved at runtime from `~/.claude/skills/bibtidy/tools`. To test local changes:
 
-- Run `./tests/run.sh` — this syncs local tools to `~/.claude/skills/bibtidy/` before invoking Claude
+- Run `./tests/run_bibtidy_tests.sh` — this syncs local tools to `~/.claude/skills/bibtidy/` before invoking Claude
 - Unit tests only: `uv run pytest tests/`
+
+## Code style
+
+- Keep code and comments plain, direct, and easy to scan. Avoid decorative formatting or cleverness that does not add meaning.
+- Add comments only when they clarify intent, constraints, or a non-obvious choice. Skip comments that just restate the next line.
+- Prefer small shared helpers and simple structure over repeated logic.

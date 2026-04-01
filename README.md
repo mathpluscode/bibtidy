@@ -30,9 +30,10 @@ Reload plugins:
 /bibtidy refs.bib
 ```
 
-bibtidy verifies each entry against [Google Scholar](https://scholar.google.com/) and [CrossRef](https://search.crossref.org/), fixes errors, and upgrades stale preprints to published versions. Every change includes the original entry commented out above so you can compare or revert, plus a `% bibtidy: source` URL for verification. We recommend using git to track changes. If using [Overleaf](https://www.overleaf.com/), this can be done with [git sync](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization).
+bibtidy verifies each entry against [Google Scholar](https://scholar.google.com/) and [CrossRef](https://search.crossref.org/), fixes errors, and upgrades stale preprints to published versions. Every change includes the original entry commented out above so you can compare or revert, plus a `% bibtidy: source` URL for verification. If CrossRef has a match for an entry that bibtidy changes, it also adds `% bibtidy: crossref <URL>` so you can see exactly which CrossRef record was available. We recommend using git to track changes. If using [Overleaf](https://www.overleaf.com/), this can be done with [git sync](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization). To remove bibtidy comments after review, ask Claude: "remove all bibtidy comments from refs.bib".
 
-To remove bibtidy comments after review, ask Claude: "remove all bibtidy comments from refs.bib"
+Note that bibtidy assumes standard brace-style BibTeX like `@article{...}`. Parenthesized forms like `@article(...)` are not supported; convert them to brace style first.
+
 
 ### Examples
 
@@ -130,6 +131,7 @@ After:
 %   year={2022}
 % }
 % bibtidy: source https://doi.org/10.1038/s41598-023-34341-2
+% bibtidy: crossref https://doi.org/10.1038/s41598-023-34341-2
 % bibtidy: updated from arXiv to published version (Scientific Reports 2023), title updated
 @article{khader2022medical,
   title={Denoising Diffusion Probabilistic Models for 3D Medical Image Generation},
@@ -166,6 +168,7 @@ After:
 %   year={2021}
 % }
 % bibtidy: source https://doi.org/10.1109/iccv48922.2021.00717
+% bibtidy: crossref https://doi.org/10.1109/iccv48922.2021.00717
 % bibtidy: corrected page range 7262--7272 → 7242--7252
 @inproceedings{strudel2021segmenter,
   title={Segmenter: Transformer for semantic segmentation},

@@ -4,76 +4,57 @@
 Checks that every changed entry follows the required format:
 1. Original entry commented out (% prefix on every line, complete entry)
 2. % bibtidy: source <URL> line present
-3. % bibtidy: <explanation> line present
-4. Corrected entry follows
+3. Optional % bibtidy: crossref <URL> line present when CrossRef has a match
+4. % bibtidy: <explanation> line present
+5. Corrected entry follows
 
 Also checks that unchanged entries have NO bibtidy comments.
 
 Usage: python3 fmt.py <original.bib> <modified.bib>
-  - If only one arg given, checks modified file structure without diff.
   - Exit code 0 = all good, 1 = violations found.
 """
 
 import re
 import sys
 
+from duplicates import ensure_brace_only_entries, remove_special_blocks
+
 
 def parse_entries(text):
-    """Extract non-commented @type{key, entries with their preceding context.
-
-    Context is collected by walking backwards from each entry, stopping at the
-    previous entry's closing brace or at a non-comment, non-blank line that
-    isn't part of bibtidy output.
-    """
+    """Extract non-commented @type{key, entries with nearby comment context."""
+    ensure_brace_only_entries(text)
     entries = {}
+    cleaned = remove_special_blocks(text)
     lines = text.split("\n")
+    cleaned_lines = cleaned.split("\n")
+    clean_lines = re.sub(r"\\[{}]", "", text).split("\n")
 
-    # First pass: find all non-commented entry positions so we know boundaries
-    entry_positions = []  # list of (start_line, end_line, key)
     i = 0
     while i < len(lines):
-        m = re.match(r"^(@\w+\{)([\w:.\-/]+),", lines[i])
-        if m:
-            key = m.group(2)
-            entry_start = i
-            entry_lines = [lines[i]]
-            depth = lines[i].count("{") - lines[i].count("}")
+        match = re.match(r"^[ \t]*@\w+\{\s*([^,]+?)\s*,", cleaned_lines[i])
+        if not match:
             i += 1
-            while i < len(lines) and depth > 0:
-                entry_lines.append(lines[i])
-                depth += lines[i].count("{") - lines[i].count("}")
-                i += 1
-            entry_end = i  # exclusive
-            entry_positions.append((entry_start, entry_end, key))
-        else:
+            continue
+
+        key = match.group(1).strip()
+        entry_start = i
+        depth = clean_lines[i].count("{") - clean_lines[i].count("}")
+        i += 1
+        while i < len(lines) and depth > 0:
+            depth += clean_lines[i].count("{") - clean_lines[i].count("}")
             i += 1
 
-    # Second pass: collect context for each entry, bounded by previous entry end
-    for idx, (entry_start, entry_end, key) in enumerate(entry_positions):
-        # Context starts after the previous entry ends (or at file start)
-        if idx > 0:
-            context_boundary = entry_positions[idx - 1][1]
-        else:
-            context_boundary = 0
+        entry_lines = lines[entry_start:i]
 
-        # Walk backwards from entry_start to collect comment/blank lines,
-        # but never cross into the previous entry's territory
         context_start = entry_start - 1
         context_lines = []
-        while context_start >= context_boundary and (
-            lines[context_start].startswith("%") or lines[context_start].strip() == ""
-        ):
+        while context_start >= 0 and (lines[context_start].startswith("%") or lines[context_start].strip() == ""):
             context_lines.insert(0, lines[context_start])
             context_start -= 1
 
-        entry_text = "\n".join(lines[entry_start:entry_end])
+        entry_text = "\n".join(entry_lines)
         context_text = "\n".join(context_lines)
-
-        entries[key] = {
-            "entry": entry_text,
-            "context": context_text,
-            "full": "\n".join(context_lines + lines[entry_start:entry_end]),
-        }
+        entries[key] = {"entry": entry_text, "context": context_text, "full": "\n".join(context_lines + entry_lines)}
 
     return entries
 
@@ -82,22 +63,25 @@ def check_changed_entry(key, context):
     """Check that a changed entry has the required format."""
     errors = []
 
-    # Check 1: commented-out original — must be a complete entry
-    # (opening line + closing "% }")
+    # Check 1: commented-out original — must be a complete brace-delimited entry
     escaped_key = re.escape(key)
-    has_open = re.search(rf"^% @\w+\{{{escaped_key},", context, re.MULTILINE)
-    has_close = re.search(r"^% \}", context, re.MULTILINE)
+    has_open = re.search(rf"^%\s*@\w+\{{{escaped_key},", context, re.MULTILINE)
     if not has_open:
         errors.append("Missing commented-out original entry")
-    elif not has_close:
+    elif not re.search(r"^%\s*\}$", context, re.MULTILINE):
         errors.append("Commented-out original appears incomplete (missing closing '% }' line)")
 
     # Check 2: % bibtidy: source <URL>
     if not re.search(r"^% bibtidy: source https?://", context, re.MULTILINE):
         errors.append('Missing "% bibtidy: source <URL>" line (found bare URL without prefix?)')
 
-    # Check 3: % bibtidy: <explanation>
-    bibtidy_lines = re.findall(r"^% bibtidy: (?!source )(.+)", context, re.MULTILINE)
+    # Check 3: optional % bibtidy: crossref <URL>
+    crossref_lines = re.findall(r"^% bibtidy: crossref (.+)", context, re.MULTILINE)
+    if any(not re.match(r"^https?://", line) for line in crossref_lines):
+        errors.append('Malformed "% bibtidy: crossref <URL>" line')
+
+    # Check 4: % bibtidy: <explanation>
+    bibtidy_lines = re.findall(r"^% bibtidy: (?!source |crossref )(.+)", context, re.MULTILINE)
     if not bibtidy_lines:
         errors.append('Missing "% bibtidy: <explanation>" line')
 
@@ -105,26 +89,21 @@ def check_changed_entry(key, context):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} [original.bib] <modified.bib>")
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <original.bib> <modified.bib>")
         sys.exit(1)
 
-    if len(sys.argv) == 3:
-        with open(sys.argv[1], encoding="utf-8") as f:
-            original_text = f.read()
-        with open(sys.argv[2], encoding="utf-8") as f:
-            modified_text = f.read()
-    else:
-        original_text = None
-        with open(sys.argv[1], encoding="utf-8") as f:
-            modified_text = f.read()
+    with open(sys.argv[1], encoding="utf-8") as f:
+        original_text = f.read()
+    with open(sys.argv[2], encoding="utf-8") as f:
+        modified_text = f.read()
 
-    modified_entries = parse_entries(modified_text)
-
-    if original_text:
+    try:
+        modified_entries = parse_entries(modified_text)
         original_entries = parse_entries(original_text)
-    else:
-        original_entries = None
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        sys.exit(1)
 
     all_errors = []
 
@@ -132,14 +111,10 @@ def main():
         context = data["context"]
 
         # Determine if entry was changed
-        if original_entries and key in original_entries:
+        if key in original_entries:
             changed = original_entries[key]["entry"] != data["entry"]
         else:
-            # Without original, check if there are bibtidy comments
-            has_comments = bool(
-                re.search(r"% bibtidy:", context) or re.search(rf"^% @\w+\{{{re.escape(key)},", context, re.MULTILINE)
-            )
-            changed = has_comments
+            changed = True
 
         if changed:
             errors = check_changed_entry(key, context)
@@ -164,6 +139,7 @@ def main():
         print("  %   field={value},")
         print("  % }")
         print("  % bibtidy: source https://doi.org/...")
+        print("  % bibtidy: crossref https://doi.org/...   # when CrossRef has a match")
         print("  % bibtidy: explanation of changes")
         print("  @type{key,")
         print("    field={corrected_value},")

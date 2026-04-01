@@ -6,9 +6,11 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 from duplicates import find_duplicates, is_preprint, normalize_title, parse_bib_entries
 
-TOOL_PATH = os.path.join(os.path.dirname(__file__), "..", "skills", "bibtidy", "tools", "duplicates.py")
+TOOL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "skills", "bibtidy", "tools", "duplicates.py")
 
 
 def _run(bib_text):
@@ -64,6 +66,14 @@ class TestSameDOI:
         same_doi = [d for d in _run(bib) if d["type"] == "same_doi"]
         assert len(same_doi) == 1
 
+    def test_legacy_dx_doi_url_matches_bare_doi(self):
+        bib = """
+@article{A1, doi = {https://dx.doi.org/10.1234/ABC}}
+@article{A2, doi = {10.1234/abc}}
+"""
+        same_doi = [d for d in _run(bib) if d["type"] == "same_doi"]
+        assert len(same_doi) == 1
+
 
 class TestSameTitle:
     def test_normalized_match(self):
@@ -95,6 +105,14 @@ class TestSameTitle:
 """
         assert len([d for d in _run(bib) if d["type"] == "same_title"]) == 0
 
+    def test_multiline_author_list_still_shares_author(self):
+        bib = """
+@article{S1, title={A Survey of Deep Learning}, author={Alpha, Alice and
+ Beta, Bob}, journal={J1}}
+@article{S2, title={A Survey of Deep Learning}, author={Beta, Bob}, journal={J2}}
+"""
+        assert len([d for d in _run(bib) if d["type"] == "same_title"]) == 1
+
 
 class TestPreprintPublished:
     def test_arxiv_and_journal(self):
@@ -120,6 +138,38 @@ class TestPreprintPublished:
 @article{Pub, title={Novel Catalyst}, journal={JACS}}
 """
         assert len([d for d in _run(bib) if d["type"] == "preprint_published"]) == 1
+
+    def test_medrxiv(self):
+        bib = """
+@article{Pre, title={Clinical Trial Results}, journal={medRxiv}}
+@article{Pub, title={Clinical Trial Results}, journal={The Lancet}}
+"""
+        assert len([d for d in _run(bib) if d["type"] == "preprint_published"]) == 1
+
+
+class TestBraceOnlySyntax:
+    def test_parenthesized_entry_rejected(self):
+        bib = "@article(Smith2020, title={Hello}, year={2020})"
+        with pytest.raises(ValueError, match="not supported"):
+            parse_bib_entries(bib)
+
+    def test_parenthesized_special_block_rejected(self):
+        bib = """
+@comment(ignored text)
+@article{Real, title={Actual Paper}, journal={Nature}}
+"""
+        with pytest.raises(ValueError, match="not supported"):
+            parse_bib_entries(bib)
+
+    def test_parenthesized_entry_inside_brace_comment_ignored(self):
+        bib = """
+@comment{This block should be ignored verbatim
+  @article(Ghost, title={Ignored})
+}
+@article{Real, title={Actual Paper}, journal={Nature}}
+"""
+        entries = parse_bib_entries(bib)
+        assert [entry["key"] for entry in entries] == ["Real"]
 
 
 class TestNoDuplicates:
@@ -189,6 +239,10 @@ class TestExpandedPreprintDetection:
         entry = {"key": "X", "howpublished": "bioRxiv"}
         assert is_preprint(entry) is True
 
+    def test_medrxiv_journal(self):
+        entry = {"key": "X", "journal": "medRxiv"}
+        assert is_preprint(entry) is True
+
     def test_archiveprefix_alone(self):
         entry = {"key": "X", "archiveprefix": "arXiv"}
         assert is_preprint(entry) is True
@@ -241,6 +295,13 @@ class TestCLI:
     def test_cli_no_args(self):
         result = subprocess.run([sys.executable, TOOL_PATH], capture_output=True, text=True)
         assert result.returncode != 0
+
+    def test_cli_parenthesized_entry_rejected(self, tmp_path):
+        bib_file = tmp_path / "paren.bib"
+        bib_file.write_text("@article(ParenKey, title={Same}, year={2020})\n")
+        result = subprocess.run([sys.executable, TOOL_PATH, str(bib_file)], capture_output=True, text=True)
+        assert result.returncode == 1
+        assert "not supported" in result.stderr
 
 
 class TestQuotedValues:

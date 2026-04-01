@@ -8,10 +8,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-INPUT="$SCRIPT_DIR/fixtures/input.bib"
-EXPECTED="$SCRIPT_DIR/fixtures/expected.bib"
-GOT="$SCRIPT_DIR/fixtures/got.bib"
-VALIDATOR="$SCRIPT_DIR/validate.py"
+INPUT="$SCRIPT_DIR/bibtidy/fixtures/input.bib"
+EXPECTED="$SCRIPT_DIR/bibtidy/fixtures/expected.bib"
+GOT="$SCRIPT_DIR/bibtidy/fixtures/got.bib"
+VALIDATOR="$SCRIPT_DIR/bibtidy/validate.py"
 FORMAT_VALIDATOR="$REPO_DIR/skills/bibtidy/tools/fmt.py"
 
 # Run unit tests first — fail fast before the slower Claude invocation

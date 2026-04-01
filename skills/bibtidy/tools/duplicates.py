@@ -11,32 +11,74 @@ import re
 import sys
 import unicodedata
 
+PAREN_STYLE_ERROR = (
+    "Parenthesized BibTeX blocks like @article(...) are not supported; "
+    "please convert them to brace style like @article{...} first."
+)
+_DOI_URL_RE = re.compile(r"^https?://(?:dx\.)?doi\.org/", re.IGNORECASE)
+_AUTHOR_SPLIT_RE = re.compile(r"\s+and\s+")
 
-def _is_escaped(text, pos):
+
+def ensure_brace_only_entries(text):
+    """Raise if active file content uses parenthesized BibTeX syntax."""
+    text = remove_special_blocks(text)
+    text = re.sub(r"(?m)^[ \t]*%.*$", "", text)
+    match = re.search(r"(?m)^[ \t]*@(\w+)\s*\(", text)
+    if not match:
+        return
+    line = text.count("\n", 0, match.start()) + 1
+    raise ValueError(f"{PAREN_STYLE_ERROR} Found '@{match.group(1)}(' on line {line}.")
+
+
+def is_escaped(text, pos):
     """Return True if the character at *pos* is preceded by a backslash."""
     return pos > 0 and text[pos - 1] == "\\"
 
 
-def _remove_special_blocks(text):
-    """Replace @string, @preamble, @comment blocks with whitespace."""
+def _find_block_end(text, start):
+    """Return the index just after a balanced BibTeX block, or None."""
+    depth = 1
+    pos = start
+    while pos < len(text):
+        if text[pos] == "{" and not is_escaped(text, pos):
+            depth += 1
+        elif text[pos] == "}" and not is_escaped(text, pos):
+            depth -= 1
+            if depth == 0:
+                return pos + 1
+        pos += 1
+    return None
+
+
+def remove_special_blocks(text):
+    """Replace @string, @preamble, @comment blocks with whitespace (preserving newlines)."""
     skip_types = {"string", "preamble", "comment"}
     result = list(text)
     for m in re.finditer(r"@(\w+)\s*\{", text):
         if m.group(1).lower() not in skip_types:
             continue
-        # Blank out from '@' through the matching '}'
+        # Blank out from '@' through the matching closing delimiter.
         start = m.start()
-        pos = m.end()
-        depth = 1
-        while pos < len(text) and depth > 0:
-            if text[pos] == "{" and not _is_escaped(text, pos):
-                depth += 1
-            elif text[pos] == "}" and not _is_escaped(text, pos):
-                depth -= 1
-            pos += 1
+        pos = _find_block_end(text, m.end())
+        if pos is None:
+            continue
         for i in range(start, pos):
-            result[i] = " "
+            if result[i] != "\n":
+                result[i] = " "
     return "".join(result)
+
+
+def normalize_doi(doi):
+    """Normalize DOI strings for comparison and indexing."""
+    return _DOI_URL_RE.sub("", doi.strip()).lower()
+
+
+def split_bibtex_authors(authors_str):
+    """Split a BibTeX author field on the 'and' separator."""
+    authors_str = authors_str.strip()
+    if not authors_str:
+        return []
+    return [name for name in _AUTHOR_SPLIT_RE.split(authors_str) if name.strip()]
 
 
 def parse_bib_entries(text):
@@ -47,10 +89,11 @@ def parse_bib_entries(text):
     Skips @string, @preamble, and @comment blocks.
     """
     entries = []
+    ensure_brace_only_entries(text)
 
     # First, blank out @string, @preamble, @comment blocks so their contents
     # (including any nested @-entries) are not picked up.
-    text = _remove_special_blocks(text)
+    text = remove_special_blocks(text)
 
     # Strip BibTeX comment lines (lines starting with %) so that
     # commented-out entries from bibtidy's own output are not parsed.
@@ -59,21 +102,12 @@ def parse_bib_entries(text):
     # Find every @type{ pattern
     entry_starts = list(re.finditer(r"@(\w+)\s*\{", text))
 
-    for idx, m in enumerate(entry_starts):
+    for m in entry_starts:
         entry_type = m.group(1).lower()
 
-        # Find the matching closing brace by counting nesting
-        start = m.end()  # position right after the opening '{'
-        depth = 1
-        pos = start
-        while pos < len(text) and depth > 0:
-            if text[pos] == "{" and not _is_escaped(text, pos):
-                depth += 1
-            elif text[pos] == "}" and not _is_escaped(text, pos):
-                depth -= 1
-            pos += 1
-
-        if depth != 0:
+        start = m.end()  # position right after the opening delimiter
+        pos = _find_block_end(text, start)
+        if pos is None:
             continue  # malformed entry, skip
 
         body = text[start : pos - 1]  # content between outer braces
@@ -174,9 +208,9 @@ def _read_braced(text, pos):
     start = pos + 1
     pos += 1
     while pos < len(text) and depth > 0:
-        if text[pos] == "{" and not _is_escaped(text, pos):
+        if text[pos] == "{" and not is_escaped(text, pos):
             depth += 1
-        elif text[pos] == "}" and not _is_escaped(text, pos):
+        elif text[pos] == "}" and not is_escaped(text, pos):
             depth -= 1
         pos += 1
     return text[start : pos - 1], pos
@@ -190,9 +224,9 @@ def _read_quoted(text, pos):
     start = pos
     depth = 0
     while pos < len(text):
-        if text[pos] == "{" and not _is_escaped(text, pos):
+        if text[pos] == "{" and not is_escaped(text, pos):
             depth += 1
-        elif text[pos] == "}" and not _is_escaped(text, pos):
+        elif text[pos] == "}" and not is_escaped(text, pos):
             depth -= 1
         elif text[pos] == '"' and depth == 0:
             val = text[start:pos]
@@ -229,7 +263,7 @@ def normalize_title(title):
     return t
 
 
-_PREPRINT_RE = re.compile(r"\b(arxiv|biorxiv|chemrxiv)\b", re.IGNORECASE)
+_PREPRINT_RE = re.compile(r"\b(arxiv|biorxiv|chemrxiv|medrxiv)\b", re.IGNORECASE)
 
 
 def is_preprint(entry):
@@ -260,8 +294,8 @@ def _share_author(ea, eb):
     b_raw = eb.get("author", "")
     if not a_raw or not b_raw:
         return False
-    a_names = {_normalize_author_last(n) for n in a_raw.split(" and ")}
-    b_names = {_normalize_author_last(n) for n in b_raw.split(" and ")}
+    a_names = {_normalize_author_last(n) for n in split_bibtex_authors(a_raw)}
+    b_names = {_normalize_author_last(n) for n in split_bibtex_authors(b_raw)}
     # Remove empty strings from splitting artifacts
     a_names.discard("")
     b_names.discard("")
@@ -280,15 +314,15 @@ def find_duplicates(entries):
     for i, entry in enumerate(entries):
         key = entry["key"]
 
-        # -- same key --
+        # Same key
         keys_seen.setdefault(key, []).append(i)
 
-        # -- same doi (strip https://doi.org/ prefix before indexing) --
-        doi = re.sub(r"^https?://doi\.org/", "", entry.get("doi", "").strip(), flags=re.IGNORECASE).lower()
+        # Same DOI
+        doi = normalize_doi(entry.get("doi", ""))
         if doi:
             dois_seen.setdefault(doi, []).append(i)
 
-        # -- title index --
+        # Title index
         raw_title = entry.get("title", "")
         norm = normalize_title(raw_title)
         if norm:
@@ -374,7 +408,11 @@ def main():
         print(f"Error: file not found: {path}", file=sys.stderr)
         sys.exit(1)
 
-    entries = parse_bib_entries(text)
+    try:
+        entries = parse_bib_entries(text)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
     dups = find_duplicates(entries)
     print(json.dumps(dups, indent=2))
 

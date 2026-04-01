@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """Tests for compare.py — field-level comparison between BibTeX and CrossRef."""
 
+import os
+import subprocess
+import sys
+
+import compare as compare_module
 from compare import compare_entry
+
+TOOL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "skills", "bibtidy", "tools", "compare.py")
 
 
 class TestPages:
@@ -106,6 +113,13 @@ class TestAuthors:
         ms = compare_entry(entry, cr)
         assert any(m["field"] == "author" for m in ms)
 
+    def test_multiline_authors_match(self):
+        """Wrapped author fields should parse the same as single-line fields."""
+        entry = {"key": "X", "author": "Alpha, Alice and\n Beta, Bob"}
+        cr = {"authors": ["Alpha, Alice", "Beta, Bob"]}
+        ms = compare_entry(entry, cr)
+        assert not any(m["field"] == "author" for m in ms)
+
 
 class TestYear:
     def test_different_year(self):
@@ -134,11 +148,33 @@ class TestDOI:
         ms = compare_entry(entry, cr)
         assert any(m["field"] == "doi" for m in ms)
 
-    def test_missing_bib_doi(self):
+    def test_missing_bib_doi_not_flagged(self):
+        """Missing DOI in bib should not be flagged — don't add new DOIs."""
         entry = {"key": "X"}
         cr = {"doi": "10.1234/test"}
         ms = compare_entry(entry, cr)
-        assert any(m["field"] == "doi" and m["severity"] == "review" for m in ms)
+        assert not any(m["field"] == "doi" for m in ms)
+
+    def test_legacy_dx_doi_prefix_stripped(self):
+        """Legacy dx.doi.org URLs should match bare DOIs."""
+        entry = {"key": "X", "doi": "https://dx.doi.org/10.1234/test"}
+        cr = {"doi": "10.1234/test"}
+        ms = compare_entry(entry, cr)
+        assert not any(m["field"] == "doi" for m in ms)
+
+
+class TestLookupAndCompare:
+    def test_legacy_dx_doi_prefix_stripped_before_lookup(self, monkeypatch):
+        seen = {}
+
+        def fake_fetch_doi(doi, timeout=10):
+            seen["doi"] = doi
+            return {"doi": doi, "url": f"https://doi.org/{doi}"}
+
+        monkeypatch.setattr(compare_module, "fetch_doi", fake_fetch_doi)
+        result = compare_module.lookup_and_compare({"key": "X", "doi": "https://dx.doi.org/10.1234/test"})
+        assert seen["doi"] == "10.1234/test"
+        assert result["error"] is None
 
 
 class TestVenue:
@@ -154,6 +190,12 @@ class TestVenue:
         ms = compare_entry(entry, cr)
         assert any(m["field"] == "journal" for m in ms)
 
+    def test_medrxiv_to_journal(self):
+        entry = {"key": "X", "journal": "medRxiv"}
+        cr = {"journal": "The Lancet"}
+        ms = compare_entry(entry, cr)
+        assert any(m["field"] == "journal" for m in ms)
+
     def test_same_journal(self):
         """Same journal name should not flag."""
         entry = {"key": "X", "journal": "Nature"}
@@ -165,7 +207,7 @@ class TestVenue:
         entry = {"key": "X", "journal": "ICML"}
         cr = {"journal": "NeurIPS"}
         ms = compare_entry(entry, cr)
-        assert any(m["field"] == "journal" and m["severity"] == "review" for m in ms)
+        assert any(m["field"] == "journal" for m in ms)
 
     def test_similar_nonpreprint_journal(self):
         """Case/brace differences in same journal should not flag."""
@@ -254,6 +296,60 @@ class TestBootitleVsJournal:
         assert len(venue_ms) == 1
         assert venue_ms[0]["field"] == "journal"
 
+    def test_missing_booktitle_uses_booktitle_field(self):
+        """Missing conference venue should still be written to booktitle."""
+        entry = {"key": "X", "entry_type": "inproceedings", "title": "A Great Paper"}
+        cr = {"title": "A Great Paper", "journal": "International Conference on Learning Representations"}
+        ms = compare_entry(entry, cr)
+        venue_ms = [m for m in ms if m["field"] in ("journal", "booktitle")]
+        assert len(venue_ms) == 1
+        assert venue_ms[0]["field"] == "booktitle"
+
+
+class TestMissingFields:
+    def test_missing_title_flagged(self):
+        """Entry with no title should be flagged when CrossRef has one."""
+        entry = {"key": "X", "author": "Smith, John", "year": "2023"}
+        cr = {"title": "A Great Paper", "authors": ["Smith, John"], "year": "2023"}
+        ms = compare_entry(entry, cr)
+        assert any(m["field"] == "title" for m in ms)
+
+    def test_missing_author_flagged(self):
+        """Entry with no author should be flagged when CrossRef has authors."""
+        entry = {"key": "X", "title": "A Great Paper", "year": "2023"}
+        cr = {"title": "A Great Paper", "authors": ["Smith, John"], "year": "2023"}
+        ms = compare_entry(entry, cr)
+        assert any(m["field"] == "author" for m in ms)
+
+    def test_missing_year_flagged(self):
+        """Entry with no year should be flagged when CrossRef has one."""
+        entry = {"key": "X", "title": "A Great Paper"}
+        cr = {"title": "A Great Paper", "year": "2023"}
+        ms = compare_entry(entry, cr)
+        assert any(m["field"] == "year" for m in ms)
+
+    def test_missing_venue_flagged(self):
+        """Entry with no journal/booktitle should be flagged when CrossRef has one."""
+        entry = {"key": "X", "title": "A Great Paper"}
+        cr = {"title": "A Great Paper", "journal": "Nature"}
+        ms = compare_entry(entry, cr)
+        assert any(m["field"] == "journal" for m in ms)
+
+
+class TestDOICaseInsensitive:
+    def test_mixed_case_doi_url(self):
+        """Mixed-case DOI URL prefix should still be stripped."""
+        entry = {"key": "X", "doi": "HTTPS://DOI.ORG/10.1234/test"}
+        cr = {"doi": "10.1234/test"}
+        ms = compare_entry(entry, cr)
+        assert not any(m["field"] == "doi" for m in ms)
+
+    def test_http_mixed_case(self):
+        entry = {"key": "X", "doi": "Http://Doi.Org/10.1234/test"}
+        cr = {"doi": "10.1234/test"}
+        ms = compare_entry(entry, cr)
+        assert not any(m["field"] == "doi" for m in ms)
+
 
 class TestCombined:
     def test_strudel_case(self):
@@ -300,3 +396,12 @@ class TestCombined:
             "type": "inproceedings",
         }
         assert compare_entry(entry, cr) == []
+
+
+class TestCLI:
+    def test_parenthesized_entry_rejected(self, tmp_path):
+        bib = tmp_path / "paren.bib"
+        bib.write_text("@article(ParenKey, title={Hello}, year={2020})\n")
+        result = subprocess.run([sys.executable, TOOL_PATH, str(bib)], capture_output=True, text=True)
+        assert result.returncode == 1
+        assert "not supported" in result.stderr

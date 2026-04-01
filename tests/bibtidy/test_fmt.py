@@ -5,9 +5,11 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 from fmt import check_changed_entry, parse_entries
 
-TOOL_PATH = os.path.join(os.path.dirname(__file__), "..", "skills", "bibtidy", "tools", "fmt.py")
+TOOL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "skills", "bibtidy", "tools", "fmt.py")
 
 
 class TestParseEntries:
@@ -51,6 +53,52 @@ class TestParseEntries:
         entries = parse_entries(text)
         assert "doi:10.1234/foo" in entries
 
+    def test_plus_sign_in_key(self):
+        """Keys should be accepted up to the first comma, not a narrow regex."""
+        text = "@article{foo+bar,\n  title={Test}\n}"
+        entries = parse_entries(text)
+        assert "foo+bar" in entries
+
+
+class TestSpecialBlocks:
+    def test_entry_inside_comment_block_ignored(self):
+        """Entries nested inside @comment{...} should not be parsed."""
+        text = "@comment{ignored\n  @article{Ghost, title={Hidden}}\n}\n@article{Real,\n  title={Shown}\n}"
+        entries = parse_entries(text)
+        assert "Ghost" not in entries
+        assert "Real" in entries
+
+    def test_entry_inside_string_block_ignored(self):
+        text = "@string{jml = {Journal of Machine Learning}}\n@article{A,\n  title={Hello}\n}"
+        entries = parse_entries(text)
+        assert "jml" not in entries
+        assert "A" in entries
+
+
+class TestIndentedEntries:
+    def test_indented_entry_parsed(self):
+        """Entries with leading whitespace should still be parsed."""
+        text = "  @article{Smith2020,\n    title={Hello},\n    year={2020}\n  }"
+        entries = parse_entries(text)
+        assert "Smith2020" in entries
+
+    def test_tab_indented_entry(self):
+        text = "\t@article{X,\n\t  title={Test}\n\t}"
+        entries = parse_entries(text)
+        assert "X" in entries
+
+
+class TestBraceOnlySyntax:
+    def test_parenthesized_entry_rejected(self):
+        text = "@article(Smith2020,\n  title={Hello},\n  year={2020}\n)"
+        with pytest.raises(ValueError, match="not supported"):
+            parse_entries(text)
+
+    def test_parenthesized_value_entry_rejected(self):
+        text = "@article(A,\n  title={Alpha) Beta},\n  year={2020}\n)"
+        with pytest.raises(ValueError, match="not supported"):
+            parse_entries(text)
+
 
 class TestCheckChangedEntry:
     def test_valid_changed_entry(self):
@@ -58,6 +106,29 @@ class TestCheckChangedEntry:
             "% @article{Smith2020,\n"
             "%   title={Old Title},\n"
             "% }\n"
+            "% bibtidy: source https://doi.org/10.1234/test\n"
+            "% bibtidy: fixed title spelling"
+        )
+        errors = check_changed_entry("Smith2020", context)
+        assert errors == []
+
+    def test_valid_changed_entry_with_crossref_line(self):
+        context = (
+            "% @article{Smith2020,\n"
+            "%   title={Old Title},\n"
+            "% }\n"
+            "% bibtidy: source https://example.com/paper\n"
+            "% bibtidy: crossref https://doi.org/10.1234/test\n"
+            "% bibtidy: fixed title spelling"
+        )
+        errors = check_changed_entry("Smith2020", context)
+        assert errors == []
+
+    def test_valid_changed_entry_with_indented_commented_original(self):
+        context = (
+            "%   @article{Smith2020,\n"
+            "%     title={Old Title},\n"
+            "%   }\n"
             "% bibtidy: source https://doi.org/10.1234/test\n"
             "% bibtidy: fixed title spelling"
         )
@@ -89,6 +160,29 @@ class TestCheckChangedEntry:
         errors = check_changed_entry("Smith2020", context)
         assert any("explanation" in e.lower() for e in errors)
 
+    def test_crossref_line_does_not_count_as_explanation(self):
+        context = (
+            "% @article{Smith2020,\n"
+            "%   title={Old},\n"
+            "% }\n"
+            "% bibtidy: source https://example.com/paper\n"
+            "% bibtidy: crossref https://doi.org/10.1234/test"
+        )
+        errors = check_changed_entry("Smith2020", context)
+        assert any("explanation" in e.lower() for e in errors)
+
+    def test_malformed_crossref_line(self):
+        context = (
+            "% @article{Smith2020,\n"
+            "%   title={Old},\n"
+            "% }\n"
+            "% bibtidy: source https://example.com/paper\n"
+            "% bibtidy: crossref doi:10.1234/test\n"
+            "% bibtidy: fixed title"
+        )
+        errors = check_changed_entry("Smith2020", context)
+        assert any("crossref" in e.lower() for e in errors)
+
     def test_key_with_special_regex_chars(self):
         """Keys containing regex metacharacters should not break."""
         context = (
@@ -104,10 +198,12 @@ class TestCheckChangedEntry:
 
 class TestCLI:
     def test_clean_file(self, tmp_path):
-        """File with no bibtidy comments should pass."""
-        bib = tmp_path / "test.bib"
-        bib.write_text("@article{A,\n  title={Hello}\n}\n")
-        result = subprocess.run([sys.executable, TOOL_PATH, str(bib)], capture_output=True, text=True)
+        """Unchanged file should pass when both original and modified files are provided."""
+        orig = tmp_path / "orig.bib"
+        orig.write_text("@article{A,\n  title={Hello}\n}\n")
+        modified = tmp_path / "mod.bib"
+        modified.write_text("@article{A,\n  title={Hello}\n}\n")
+        result = subprocess.run([sys.executable, TOOL_PATH, str(orig), str(modified)], capture_output=True, text=True)
         assert result.returncode == 0
         assert "Format OK" in result.stdout
 
@@ -120,6 +216,7 @@ class TestCLI:
             "%   title={Old}\n"
             "% }\n"
             "% bibtidy: source https://example.com\n"
+            "% bibtidy: crossref https://doi.org/10.1234/example\n"
             "% bibtidy: fixed title\n"
             "@article{A,\n"
             "  title={New}\n"
@@ -137,6 +234,21 @@ class TestCLI:
         assert result.returncode == 1
         assert "VIOLATION" in result.stdout
 
+    def test_requires_two_args(self, tmp_path):
+        bib = tmp_path / "test.bib"
+        bib.write_text("@article{A,\n  title={Hello}\n}\n")
+        result = subprocess.run([sys.executable, TOOL_PATH, str(bib)], capture_output=True, text=True)
+        assert result.returncode == 1
+
     def test_no_args(self):
         result = subprocess.run([sys.executable, TOOL_PATH], capture_output=True, text=True)
         assert result.returncode == 1
+
+    def test_parenthesized_entry_rejected(self, tmp_path):
+        orig = tmp_path / "orig.bib"
+        orig.write_text("@article{A,\n  title={Hello}\n}\n")
+        bib = tmp_path / "paren.bib"
+        bib.write_text("@article(A,\n  title={Hello}\n)\n")
+        result = subprocess.run([sys.executable, TOOL_PATH, str(orig), str(bib)], capture_output=True, text=True)
+        assert result.returncode == 1
+        assert "not supported" in result.stdout
