@@ -222,7 +222,7 @@
     font-size: 0.75rem;
   }
 
-  .diff-line { padding: 0 1rem; white-space: pre; }
+  .diff-line { padding: 0 1rem; white-space: pre; display: block; min-width: fit-content; }
   .diff-line.del { background: var(--del-bg); color: var(--del-line); }
   .diff-line.add { background: var(--add-bg); color: var(--add-line); }
   .diff-line.ctx { color: var(--text-muted); }
@@ -402,7 +402,7 @@
 <div class="diff-card">
   <div class="diff-header">
     <span class="diff-title">Duplicate pair (bioRxiv preprint + published version)</span>
-    <span class="stats"><span class="add-count">+1</span></span>
+    <span class="stats"><span class="add-count">+4</span> <span class="del-count">-2</span></span>
     <span class="diff-badge badge-duplicate">duplicate detected</span>
   </div>
   <div class="diff-body">
@@ -418,12 +418,15 @@
     <div class="diff-line ctx"> </div>
     <div class="diff-line ctx"> @article{watson2023novo,</div>
     <div class="diff-line ctx">   title={De novo design of protein structure and function with RFdiffusion},</div>
-    <div class="diff-line ctx">   author={Watson, Joseph L and Juergens, David and Bennett, Nathaniel R and Trippe, Brian L and Yim, Jason and Eisenach, Helen E and Ahern, Woody and Borst, Andrew J and Ragotte, Robert J and Milles, Lukas F and others},</div>
+    <div class="diff-line del">-  author={Watson, Joseph L and Juergens, David and Bennett, Nathaniel R and Trippe, Brian L and Yim, Jason and Eisenach, Helen E and Ahern, Woody and Borst, Andrew J and Ragotte, Robert J and Milles, Lukas F and others},</div>
+    <div class="diff-line add">+  author={Watson, Joseph L. and Juergens, David and Bennett, Nathaniel R. and Trippe, Brian L. and Yim, Jason and Eisenach, Helen E. and Ahern, Woody and Borst, Andrew J. and Ragotte, Robert J. and Milles, Lukas F. and Wicky, Basile I. M. and Hanikel, Nikita and Pellock, Samuel J. and Courbet, Alexis and Sheffler, William and Wang, Jue and Venkatesh, Preetham and Sappington, Isaac and Torres, Susana Vázquez and Lauko, Anna and De Bortoli, Valentin and Mathieu, Emile and Ovchinnikov, Sergey and Barzilay, Regina and Jaakkola, Tommi S. and DiMaio, Frank and Baek, Minkyung and Baker, David},</div>
     <div class="diff-line ctx">   journal={Nature},</div>
     <div class="diff-line ctx">   volume={620},</div>
     <div class="diff-line ctx">   pages={1089--1100},</div>
     <div class="diff-line ctx">   year={2023},</div>
-    <div class="diff-line ctx">   publisher={Nature Publishing Group UK London}</div>
+    <div class="diff-line del">-  publisher={Nature Publishing Group UK London}</div>
+    <div class="diff-line add">+  publisher={Nature Publishing Group UK London},</div>
+    <div class="diff-line add">+  number={7976}</div>
     <div class="diff-line ctx"> }</div>
   </div>
 </div>

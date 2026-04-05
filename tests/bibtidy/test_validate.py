@@ -164,6 +164,22 @@ EXPECTED_DIFFS = {
         "volume": (None, "13"),
         "year": ("2022", "2023"),
     },
+    "watson2023novo": {
+        "author": (
+            "Watson, Joseph L and Juergens, David and Bennett, Nathaniel R and Trippe, Brian L"
+            " and Yim, Jason and Eisenach, Helen E and Ahern, Woody and Borst, Andrew J"
+            " and Ragotte, Robert J and Milles, Lukas F and others",
+            "Watson, Joseph L. and Juergens, David and Bennett, Nathaniel R. and Trippe, Brian L."
+            " and Yim, Jason and Eisenach, Helen E. and Ahern, Woody and Borst, Andrew J."
+            " and Ragotte, Robert J. and Milles, Lukas F. and Wicky, Basile I. M. and Hanikel, Nikita"
+            " and Pellock, Samuel J. and Courbet, Alexis and Sheffler, William and Wang, Jue"
+            " and Venkatesh, Preetham and Sappington, Isaac and Torres, Susana V\u00e1zquez"
+            " and Lauko, Anna and De Bortoli, Valentin and Mathieu, Emile and Ovchinnikov, Sergey"
+            " and Barzilay, Regina and Jaakkola, Tommi S. and DiMaio, Frank and Baek, Minkyung"
+            " and Baker, David",
+        ),
+        "number": (None, "7976"),
+    },
     "kirillov2023segment": {
         "author": (
             "Kirillov, Alexander and Mintun, Eric and Ravi, Nikhila and Mao, Hanzi"

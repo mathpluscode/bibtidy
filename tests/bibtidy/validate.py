@@ -195,7 +195,7 @@ def check_formatting_fixes_applied(text):
 
 
 def check_duplicates_flagged(text):
-    """bioRxiv + published pair should be flagged as duplicates."""
+    """bioRxiv + published pair should be flagged as duplicates, published entry fixed."""
     t = TestResult("Duplicate pair flagged (watson2022broadly / watson2023novo)")
     t.check(
         has_bibtidy_comment(text, "watson2022broadly", r"% bibtidy:.*[Dd][Uu][Pp][Ll][Ii][Cc][Aa][Tt][Ee]")
@@ -204,7 +204,17 @@ def check_duplicates_flagged(text):
     )
     # Both entries should still exist (bibtidy flags, doesn't delete)
     t.check(find_entry_block(text, "watson2022broadly") is not None, "watson2022broadly still exists")
-    t.check(find_entry_block(text, "watson2023novo") is not None, "watson2023novo still exists")
+    novo = find_entry_block(text, "watson2023novo")
+    t.check(novo is not None, "watson2023novo still exists")
+    # Published entry should have CrossRef fixes applied
+    if novo:
+        t.check(find_commented_entry(text, "watson2023novo"), "watson2023novo original commented out")
+        t.check(has_url(text, "watson2023novo"), "watson2023novo has URL")
+        author = get_field(novo, "author") or ""
+        t.check("and others" not in author, "watson2023novo 'and others' expanded")
+        t.check("Baker" in author, "watson2023novo full author list includes last author")
+        number = get_field(novo, "number")
+        t.check(number == "7976", "watson2023novo number field added")
     return t
 
 

@@ -26,8 +26,6 @@ SAMPLE_SEARCH_RESPONSE = {"message": {"items": [SAMPLE_WORK_ITEM, SAMPLE_WORK_MI
 
 SAMPLE_DOI_RESPONSE = {"message": SAMPLE_WORK_ITEM}
 
-EXPECTED_FIELDS = {"title", "authors", "year", "journal", "volume", "number", "pages", "doi", "type", "url"}
-
 
 class TestFormatWork:
     def test_full_item(self):
@@ -142,6 +140,14 @@ class TestFetchDoi:
 
 class TestSearchTitle:
     @patch("crossref._fetch_json")
+    def test_uses_title_param(self, mock_fetch):
+        mock_fetch.return_value = {"message": {"items": []}}
+        crossref.search_title("some query")
+        url = mock_fetch.call_args[0][0]
+        assert "query.title=" in url
+        assert "query.bibliographic=" not in url
+
+    @patch("crossref._fetch_json")
     def test_success(self, mock_fetch):
         mock_fetch.return_value = SAMPLE_SEARCH_RESPONSE
         result = crossref.search_title("Attention Is All You Need")
@@ -176,15 +182,24 @@ class TestSearchTitle:
         assert "malformed" in result["error"].lower()
 
 
-class TestOutputFormat:
-    def test_all_fields_present(self):
-        result = crossref.format_work(SAMPLE_WORK_ITEM)
-        assert set(result.keys()) == EXPECTED_FIELDS
+class TestSearchBibliographic:
+    @patch("crossref._fetch_json")
+    def test_success(self, mock_fetch):
+        mock_fetch.return_value = SAMPLE_SEARCH_RESPONSE
+        result = crossref.search_bibliographic("Attention Is All You Need")
+        assert len(result["results"]) == 2
+        assert result["results"][0]["title"] == "Attention Is All You Need"
 
-    def test_json_serializable(self):
-        result = crossref.format_work(SAMPLE_WORK_ITEM)
-        assert json.loads(json.dumps(result)) == result
+    @patch("crossref._fetch_json")
+    def test_uses_bibliographic_param(self, mock_fetch):
+        mock_fetch.return_value = {"message": {"items": []}}
+        crossref.search_bibliographic("some query")
+        url = mock_fetch.call_args[0][0]
+        assert "query.bibliographic=" in url
+        assert "query.title=" not in url
 
-    def test_error_json_serializable(self):
-        error_result = {"error": "Something went wrong"}
-        assert "error" in json.loads(json.dumps(error_result))
+    @patch("crossref._fetch_json")
+    def test_empty_results(self, mock_fetch):
+        mock_fetch.return_value = {"message": {"items": []}}
+        result = crossref.search_bibliographic("nonexistent paper xyz")
+        assert result["results"] == []

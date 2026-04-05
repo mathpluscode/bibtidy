@@ -2,8 +2,9 @@
 """CrossRef API utilities for BibTeX validation.
 
 Usage:
-    python3 crossref.py doi <DOI>            — fetch metadata for a specific DOI
-    python3 crossref.py search "<title>"     — search by title, return top 3 results
+    python3 crossref.py doi <DOI>                  — fetch metadata for a specific DOI
+    python3 crossref.py search "<title>"           — search by title, return top 3 results
+    python3 crossref.py bibliographic "<query>"    — broad bibliographic search, return top 3 results
 
 Options:
     --timeout SECONDS   HTTP timeout (default: 10)
@@ -132,9 +133,9 @@ def fetch_doi(doi: str, timeout: int = 10) -> dict:
         return {"error": f"Malformed response from CrossRef: {exc}"}
 
 
-def search_title(title: str, rows: int = 3, timeout: int = 10) -> dict:
-    """Search CrossRef by title, returning up to `rows` results."""
-    params = urllib.parse.urlencode({"query.bibliographic": title, "rows": rows, "mailto": MAILTO})
+def _search(param_name: str, query: str, rows: int, timeout: int) -> dict:
+    """Search CrossRef works by a given query parameter."""
+    params = urllib.parse.urlencode({param_name: query, "rows": rows, "mailto": MAILTO})
     url = f"{CROSSREF_API}/works?{params}"
     result = _safe_fetch(url, timeout)
     if "error" in result:
@@ -144,6 +145,16 @@ def search_title(title: str, rows: int = 3, timeout: int = 10) -> dict:
         return {"results": [format_work(item) for item in items]}
     except (KeyError, IndexError) as exc:
         return {"error": f"Malformed response from CrossRef: {exc}"}
+
+
+def search_title(title: str, rows: int = 3, timeout: int = 10) -> dict:
+    """Search CrossRef by title, returning up to `rows` results."""
+    return _search("query.title", title, rows, timeout)
+
+
+def search_bibliographic(query: str, rows: int = 3, timeout: int = 10) -> dict:
+    """Search CrossRef by general bibliographic query, returning up to `rows` results."""
+    return _search("query.bibliographic", query, rows, timeout)
 
 
 def main() -> None:
@@ -157,12 +168,17 @@ def main() -> None:
     search_parser = subparsers.add_parser("search", help="Search by title")
     search_parser.add_argument("title", help="Title string to search for")
 
+    bib_parser = subparsers.add_parser("bibliographic", help="Search by bibliographic query")
+    bib_parser.add_argument("query", help="Bibliographic query string")
+
     args = parser.parse_args()
 
     if args.command == "doi":
         result = fetch_doi(args.doi_value, timeout=args.timeout)
     elif args.command == "search":
         result = search_title(args.title, timeout=args.timeout)
+    elif args.command == "bibliographic":
+        result = search_bibliographic(args.query, timeout=args.timeout)
     else:
         parser.print_help()
         sys.exit(1)

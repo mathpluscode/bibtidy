@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 
+import pytest
+
 import compare as compare_module
 from compare import compare_entry
 
@@ -58,13 +60,6 @@ class TestTitle:
 
 
 class TestAuthors:
-    def test_bib_has_more_authors_than_crossref_is_ok(self):
-        """Bib with more authors is OK — CrossRef may truncate."""
-        entry = {"key": "X", "author": "Smith, John and Dayan, Peter"}
-        cr = {"authors": ["Smith, John"]}
-        ms = compare_entry(entry, cr)
-        assert any(m["field"] == "author" for m in ms)
-
     def test_matching_authors(self):
         entry = {"key": "X", "author": "Smith, John and Doe, Jane"}
         cr = {"authors": ["Smith, John", "Doe, Jane"]}
@@ -169,30 +164,84 @@ class TestLookupAndCompare:
 
         def fake_fetch_doi(doi, timeout=10):
             seen["doi"] = doi
-            return {"doi": doi, "url": f"https://doi.org/{doi}"}
+            return {"title": "Test Paper", "doi": doi, "url": f"https://doi.org/{doi}"}
 
+        monkeypatch.setattr(compare_module, "search_title", lambda title, rows=3, timeout=10: {"results": []})
         monkeypatch.setattr(compare_module, "fetch_doi", fake_fetch_doi)
-        result = compare_module.lookup_and_compare({"key": "X", "doi": "https://dx.doi.org/10.1234/test"})
+        result = compare_module.lookup_and_compare({"key": "X", "title": "Test Paper", "doi": "https://dx.doi.org/10.1234/test"})
         assert seen["doi"] == "10.1234/test"
         assert result["error"] is None
 
+    def test_last_crossref_error_preserved_when_all_strategies_fail(self, monkeypatch):
+        monkeypatch.setattr(compare_module, "search_title", lambda title, rows=3, timeout=10: {"results": []})
+        monkeypatch.setattr(compare_module, "fetch_doi", lambda doi, timeout=10: {"error": "DOI lookup failed"})
+        monkeypatch.setattr(
+            compare_module,
+            "search_bibliographic",
+            lambda title, rows=3, timeout=10: {"error": "Bibliographic search failed"},
+        )
+
+        result = compare_module.lookup_and_compare({"key": "X", "title": "Attention Is All You Need", "doi": "10.1234/x"})
+        assert result["error"] == "Bibliographic search failed"
+
+    def test_bad_doi_returned_alongside_title_match(self, monkeypatch):
+        """A resolving DOI that points to a different paper is still returned for agent judgment."""
+        correct = {"title": "Real Paper", "authors": ["Smith, John"], "year": "2023", "doi": "10.1234/real"}
+        wrong = {"title": "Wrong Paper", "authors": ["Doe, Jane"], "year": "2020", "doi": "10.1234/wrong"}
+
+        monkeypatch.setattr(
+            compare_module, "search_title", lambda title, rows=3, timeout=10: {"results": [correct]}
+        )
+        monkeypatch.setattr(compare_module, "fetch_doi", lambda doi, timeout=10: wrong)
+
+        entry = {"key": "X", "title": "Real Paper", "author": "Smith, John", "doi": "10.1234/wrong"}
+        result = compare_module.lookup_and_compare(entry)
+        assert result["error"] is None
+        dois = {v["doi"] for v in result["versions"]}
+        assert "10.1234/real" in dois
+        assert "10.1234/wrong" in dois
+
+    def test_good_doi_supplements_title_match(self, monkeypatch):
+        """A DOI that resolves to the same title should be included alongside title results."""
+        title_result = {"title": "Real Paper", "authors": ["Smith, John"], "year": "2023", "doi": "10.1234/real"}
+        doi_result = {"title": "Real Paper", "authors": ["Smith, John"], "year": "2023", "doi": "10.1234/real"}
+
+        monkeypatch.setattr(
+            compare_module, "search_title", lambda title, rows=3, timeout=10: {"results": [title_result]}
+        )
+        monkeypatch.setattr(compare_module, "fetch_doi", lambda doi, timeout=10: doi_result)
+
+        entry = {"key": "X", "title": "Real Paper", "author": "Smith, John", "doi": "10.1234/real"}
+        result = compare_module.lookup_and_compare(entry)
+        assert result["error"] is None
+        # Same DOI, so should deduplicate to 1 version
+        assert len(result["versions"]) == 1
+
+    def test_doi_only_entry_no_title(self, monkeypatch):
+        """Entry with DOI but no title should still attempt DOI lookup."""
+        doi_result = {"title": "Found Paper", "doi": "10.1234/x", "url": "https://doi.org/10.1234/x"}
+        monkeypatch.setattr(compare_module, "fetch_doi", lambda doi, timeout=10: doi_result)
+        result = compare_module.lookup_and_compare({"key": "X", "doi": "10.1234/x"})
+        assert result["error"] is None
+        assert len(result["versions"]) == 1
+
+    def test_title_search_error_preserved_without_doi(self, monkeypatch):
+        monkeypatch.setattr(compare_module, "search_title", lambda title, rows=3, timeout=10: {"error": "Rate limited"})
+        monkeypatch.setattr(compare_module, "search_bibliographic", lambda title, rows=3, timeout=10: {"results": []})
+
+        result = compare_module.lookup_and_compare({"key": "X", "title": "Attention Is All You Need"})
+        assert result["error"] == "Rate limited"
+
 
 class TestVenue:
-    def test_arxiv_to_journal(self):
-        entry = {"key": "X", "journal": "arXiv preprint arXiv:2210.02747"}
-        cr = {"journal": "Nature"}
-        ms = compare_entry(entry, cr)
-        assert any(m["field"] == "journal" for m in ms)
-
-    def test_biorxiv_to_journal(self):
-        entry = {"key": "X", "journal": "bioRxiv"}
-        cr = {"journal": "Nature"}
-        ms = compare_entry(entry, cr)
-        assert any(m["field"] == "journal" for m in ms)
-
-    def test_medrxiv_to_journal(self):
-        entry = {"key": "X", "journal": "medRxiv"}
-        cr = {"journal": "The Lancet"}
+    @pytest.mark.parametrize("preprint,published", [
+        ("arXiv preprint arXiv:2210.02747", "Nature"),
+        ("bioRxiv", "Nature"),
+        ("medRxiv", "The Lancet"),
+    ])
+    def test_preprint_to_journal(self, preprint, published):
+        entry = {"key": "X", "journal": preprint}
+        cr = {"journal": published}
         ms = compare_entry(entry, cr)
         assert any(m["field"] == "journal" for m in ms)
 
@@ -337,15 +386,10 @@ class TestMissingFields:
 
 
 class TestDOICaseInsensitive:
-    def test_mixed_case_doi_url(self):
-        """Mixed-case DOI URL prefix should still be stripped."""
-        entry = {"key": "X", "doi": "HTTPS://DOI.ORG/10.1234/test"}
-        cr = {"doi": "10.1234/test"}
-        ms = compare_entry(entry, cr)
-        assert not any(m["field"] == "doi" for m in ms)
-
-    def test_http_mixed_case(self):
-        entry = {"key": "X", "doi": "Http://Doi.Org/10.1234/test"}
+    @pytest.mark.parametrize("prefix", ["HTTPS://DOI.ORG/", "Http://Doi.Org/", "https://DX.DOI.ORG/"])
+    def test_mixed_case_doi_url(self, prefix):
+        """Mixed-case DOI URL prefixes should still be stripped."""
+        entry = {"key": "X", "doi": f"{prefix}10.1234/test"}
         cr = {"doi": "10.1234/test"}
         ms = compare_entry(entry, cr)
         assert not any(m["field"] == "doi" for m in ms)

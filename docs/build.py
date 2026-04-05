@@ -409,7 +409,7 @@ def build_html(cards_html: str) -> str:
     font-size: 0.75rem;
   }}
 
-  .diff-line {{ padding: 0 1rem; white-space: pre; }}
+  .diff-line {{ padding: 0 1rem; white-space: pre; display: block; min-width: fit-content; }}
   .diff-line.del {{ background: var(--del-bg); color: var(--del-line); }}
   .diff-line.add {{ background: var(--add-bg); color: var(--add-line); }}
   .diff-line.ctx {{ color: var(--text-muted); }}

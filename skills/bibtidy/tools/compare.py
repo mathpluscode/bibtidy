@@ -17,7 +17,7 @@ import json
 import re
 import sys
 
-from crossref import fetch_doi, search_title
+from crossref import fetch_doi, search_bibliographic, search_title
 from duplicates import normalize_doi, normalize_title, parse_bib_entries, split_bibtex_authors
 
 
@@ -179,34 +179,44 @@ def lookup_and_compare(entry: dict, timeout: int = 10) -> dict:
     key = entry["key"]
     result = {"key": key, "versions": [], "error": None}
 
-    # Try DOI first, then title search
+    title = entry.get("title", "")
     doi = entry.get("doi", "").strip()
-    if doi:
-        doi = normalize_doi(doi)
-        cr = fetch_doi(doi, timeout=timeout)
-    else:
-        title = entry.get("title", "")
-        if not title:
-            result["error"] = "No DOI or title to search"
-            return result
-        cr = search_title(title, rows=3, timeout=timeout)
-
-    if "error" in cr:
-        result["error"] = cr["error"]
+    if not title and not doi:
+        result["error"] = "No DOI or title to search"
         return result
 
-    if "results" in cr:
-        items = cr["results"]
-        if not items:
-            result["error"] = "No CrossRef results found"
-            return result
-        bib_title_norm = normalize_title(entry.get("title", ""))
-        matches = [item for item in items if normalize_title(item.get("title") or "") == bib_title_norm]
-        if not matches:
-            result["error"] = "No exact title match in CrossRef results"
-            return result
-    else:
-        matches = [cr]
+    # Collect CrossRef results from multiple strategies.
+    matches = []
+    last_error = None
+    bib_title_norm = normalize_title(title)
+
+    def _search_and_filter(search_fn, query):
+        nonlocal last_error
+        cr = search_fn(query, rows=3, timeout=timeout)
+        if "error" in cr:
+            last_error = cr["error"]
+            return []
+        return [item for item in cr.get("results", [])
+                if normalize_title(item.get("title") or "") == bib_title_norm]
+
+    if title:
+        matches = _search_and_filter(search_title, title)
+
+    if doi:
+        cr = fetch_doi(normalize_doi(doi), timeout=timeout)
+        if "error" in cr:
+            last_error = cr["error"]
+        else:
+            existing_dois = {m.get("doi") for m in matches}
+            if cr.get("doi") not in existing_dois:
+                matches.append(cr)
+
+    if not matches and title:
+        matches = _search_and_filter(search_bibliographic, title)
+
+    if not matches:
+        result["error"] = last_error or "No exact title match in CrossRef results"
+        return result
 
     result["versions"] = [
         {
