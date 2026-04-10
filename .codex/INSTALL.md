@@ -33,8 +33,10 @@ You should see a symlink pointing at `~/.codex/bibtools/skills/bibtidy`.
 
 ## Updating
 
-```bash
-cd ~/.codex/bibtools && git pull
+Ask Codex to pull the latest version:
+
+```text
+Update the bibtools skill: run `cd ~/.codex/bibtools && git pull`
 ```
 
-The skill updates immediately through the symlink. Restart Codex if it is already running.
+Tool scripts under `tools/` are read fresh on every invocation through the symlink, so they take effect immediately. Start a new Codex session so the refreshed `SKILL.md` is loaded into context.

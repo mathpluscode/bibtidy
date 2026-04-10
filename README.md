@@ -30,6 +30,13 @@ Reload plugins:
 /reload-plugins
 ```
 
+To update later, refresh the marketplace and reload:
+
+```bash
+/plugin marketplace update mathpluscode-bibtools
+/reload-plugins
+```
+
 ### Codex
 
 Tell Codex:
@@ -37,6 +44,14 @@ Tell Codex:
 ```text
 Fetch and follow instructions from https://raw.githubusercontent.com/mathpluscode/bibtools/main/.codex/INSTALL.md
 ```
+
+To update later, ask Codex to pull the latest version:
+
+```text
+Update the bibtools skill: run `cd ~/.codex/bibtools && git pull`
+```
+
+Start a new Codex session afterwards so the refreshed `SKILL.md` is loaded into context.
 
 ## bibtidy
 

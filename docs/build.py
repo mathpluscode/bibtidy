@@ -492,11 +492,22 @@ def build_html(cards_html: str) -> str:
     <div class="code-block"><code>/reload-plugins</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
   </div>
 
+  <div class="install-step">
+    <p>To update later, refresh the marketplace and reload:</p>
+    <div class="code-block"><code>/plugin marketplace update mathpluscode-bibtools</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
+    <div class="code-block" style="margin-top: 0.4rem;"><code>/reload-plugins</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
   <h3 style="font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.75rem;">Codex</h3>
 
   <div class="install-step">
     <p>Tell Codex to fetch and follow the install instructions:</p>
     <div class="code-block"><code>Fetch and follow instructions from https://raw.githubusercontent.com/mathpluscode/bibtools/main/.codex/INSTALL.md</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <div class="install-step">
+    <p>To update later, ask Codex to pull the latest version (start a new Codex session afterwards so the refreshed <code>SKILL.md</code> is loaded into context):</p>
+    <div class="code-block"><code>Update the bibtools skill: run `cd ~/.codex/bibtools &amp;&amp; git pull`</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
   </div>
 
 </div>

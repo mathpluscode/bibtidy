@@ -294,11 +294,22 @@
     <div class="code-block"><code>/reload-plugins</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
   </div>
 
+  <div class="install-step">
+    <p>To update later, refresh the marketplace and reload:</p>
+    <div class="code-block"><code>/plugin marketplace update mathpluscode-bibtools</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
+    <div class="code-block" style="margin-top: 0.4rem;"><code>/reload-plugins</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
   <h3 style="font-size: 1rem; font-weight: 600; margin: 1.5rem 0 0.75rem;">Codex</h3>
 
   <div class="install-step">
     <p>Tell Codex to fetch and follow the install instructions:</p>
     <div class="code-block"><code>Fetch and follow instructions from https://raw.githubusercontent.com/mathpluscode/bibtools/main/.codex/INSTALL.md</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <div class="install-step">
+    <p>To update later, ask Codex to pull the latest version (start a new Codex session afterwards so the refreshed <code>SKILL.md</code> is loaded into context):</p>
+    <div class="code-block"><code>Update the bibtools skill: run `cd ~/.codex/bibtools &amp;&amp; git pull`</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
   </div>
 
 </div>
@@ -518,6 +529,34 @@
       <tr class="diff-row ctx"><td class="diff-gutter">&nbsp;</td><td class="diff-content">  pages={3992--4003},</td></tr>
       <tr class="diff-row ctx"><td class="diff-gutter">&nbsp;</td><td class="diff-content">  year={2023},</td></tr>
       <tr class="diff-row ctx"><td class="diff-gutter">&nbsp;</td><td class="diff-content">  doi={10.1109/ICCV51070.2023.00371}</td></tr>
+      <tr class="diff-row ctx"><td class="diff-gutter">&nbsp;</td><td class="diff-content">}</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="diff-card">
+  <div class="diff-header">
+    <span class="diff-title">Outdated abstract to be updated with published version with DOI change</span>
+    <span class="stats"><span class="add-count">+6</span> <span class="del-count">-8</span></span>
+    <span class="diff-badge badge-fix">fix</span>
+  </div>
+  <div class="diff-body">
+    <table class="diff-table"><tbody>
+      <tr class="diff-row ctx"><td class="diff-gutter">&nbsp;</td><td class="diff-content">@article{shad2023generalizable,</td></tr>
+      <tr class="diff-row del"><td class="diff-gutter">-</td><td class="diff-content">  title={A Generalizable Deep Learning System for Cardiac MRI},</td></tr>
+      <tr class="diff-row del"><td class="diff-gutter">-</td><td class="diff-content">  author={Shad, Rohan and Zakka, Cyril R and Kaur, Dhamanpreet and Mongan, John and Kallianos, Kimberly G and Filice, Ross and Khandwala, Nishith and Eng, David and Langlotz, Curtis and Hiesinger, William},</td></tr>
+      <tr class="diff-row del"><td class="diff-gutter">-</td><td class="diff-content">  journal={Circulation},</td></tr>
+      <tr class="diff-row del"><td class="diff-gutter">-</td><td class="diff-content">  volume={148},</td></tr>
+      <tr class="diff-row del"><td class="diff-gutter">-</td><td class="diff-content">  number={Suppl\_1},</td></tr>
+      <tr class="diff-row del"><td class="diff-gutter">-</td><td class="diff-content">  pages={A13588--A13588},</td></tr>
+      <tr class="diff-row del"><td class="diff-gutter">-</td><td class="diff-content">  year={2023},</td></tr>
+      <tr class="diff-row del"><td class="diff-gutter">-</td><td class="diff-content">  doi={10.1161/circ.148.suppl\_1.13588}</td></tr>
+      <tr class="diff-row add"><td class="diff-gutter">+</td><td class="diff-content">  title={A generalizable deep learning system for cardiac MRI},</td></tr>
+      <tr class="diff-row add"><td class="diff-gutter">+</td><td class="diff-content">  author={Shad, Rohan and Zakka, Cyril and Kaur, Dhamanpreet and Mathur, Mrudang and Fong, Robyn and Cho, Joseph and Filice, Ross Warren and Mongan, John and Kallianos, Kimberly and Khandwala, Nishith and others},</td></tr>
+      <tr class="diff-row add"><td class="diff-gutter">+</td><td class="diff-content">  journal={Nature Biomedical Engineering},</td></tr>
+      <tr class="diff-row add"><td class="diff-gutter">+</td><td class="diff-content">  pages={1--16},</td></tr>
+      <tr class="diff-row add"><td class="diff-gutter">+</td><td class="diff-content">  year={2026},</td></tr>
+      <tr class="diff-row add"><td class="diff-gutter">+</td><td class="diff-content">  publisher={Nature Publishing Group UK London}</td></tr>
       <tr class="diff-row ctx"><td class="diff-gutter">&nbsp;</td><td class="diff-content">}</td></tr>
     </tbody></table>
   </div>
