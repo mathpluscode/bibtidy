@@ -48,7 +48,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/mathpluscod
 To update later, ask Codex to pull the latest version:
 
 ```text
-Update the bibtools skill: run `cd ~/.codex/bibtools && git pull`
+Reinstall/update my `bibtidy` skill from https://github.com/mathpluscode/bibtools, discarding local changes in `~/.codex/bibtools` and replacing `~/.codex/skills/bibtidy` with the correct symlinked setup.
 ```
 
 Start a new Codex session afterwards so the refreshed `SKILL.md` is loaded into context.
