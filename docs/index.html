@@ -82,13 +82,12 @@
   }
 
   .header {
-    border-bottom: 1px solid var(--border);
-    padding: 2rem 0;
+    padding: 2rem 0 0.5rem;
     text-align: center;
   }
 
   .header h1 { font-size: 2rem; font-weight: 600; margin-bottom: 0.5rem; }
-  .header p { color: var(--text-muted); font-size: 1.1rem; }
+  .header p { color: var(--text-muted); }
 
   .github-link {
     display: inline-flex;
@@ -250,6 +249,43 @@
   .stats .del-count { color: var(--del-line); }
 
   .diff-body a { color: var(--accent); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.6rem 1.25rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .tab-btn:hover {
+    color: var(--text);
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-panel {
+    display: none;
+  }
+
+  .tab-panel.active {
+    display: block;
+  }
 </style>
 </head>
 <body>
@@ -266,15 +302,20 @@
 </div>
 
 <div class="container">
-<p class="intro">bibtidy cross-checks BibTeX entries against Google Scholar, CrossRef, and conference/journal sites. It upgrades arXiv/bioRxiv preprints to published versions (even when the title changed upon publication), corrects metadata (authors, pages, venues), and flags duplicate entries.</p>
 
-<p class="intro"><strong>Note:</strong> bibtidy's output is non-deterministic. The same <code>.bib</code> file can yield different fixes across runs, and Claude Code and Codex may reach different conclusions on the same entry, due to variability in search results, LLM sampling, and differences between the two agents' underlying models. Every change ships with <code>% bibtidy:</code> URLs for verification &mdash; treat the output as a reviewed first draft, not a final answer.</p>
+<div class="tabs">
+  <button class="tab-btn active" data-tab="bibtidy" onclick="switchTab('bibtidy')">bibtidy</button>
+</div>
+
+<div id="tab-bibtidy" class="tab-panel active">
 
 <div class="section">
   <div class="demo">
     <img src="bibtidy_demo.gif" alt="bibtidy demo" width="1600" height="1200">
   </div>
 </div>
+
+<p class="intro">bibtidy cross-checks BibTeX entries against Google Scholar, CrossRef, and conference/journal sites. It upgrades arXiv/bioRxiv preprints to published versions (even when the title changed upon publication), corrects metadata (authors, pages, venues), and flags duplicate entries.</p>
 
 <div class="section">
   <h2 class="section-title">Install</h2>
@@ -313,6 +354,18 @@
     <p>To update later, ask Codex to pull the latest version (start a new Codex session afterwards so the refreshed <code>SKILL.md</code> is loaded into context):</p>
     <div class="code-block"><code>Reinstall/update my `bibtidy` skill from https://github.com/mathpluscode/bibtools, discarding local changes in `~/.codex/bibtools` and replacing `~/.codex/skills/bibtidy` with the correct symlinked setup.</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
   </div>
+
+</div>
+
+<div class="section">
+  <h2 class="section-title">Usage</h2>
+
+  <div class="install-step">
+    <p>In both Claude Code and Codex, use:</p>
+    <div class="code-block"><code>/bibtidy refs.bib</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <p class="intro">bibtidy's output is non-deterministic. The same <code>.bib</code> file can yield different fixes across runs, and Claude Code and Codex may reach different conclusions on the same entry, due to variability in search results, LLM sampling, and differences between the two agents' underlying models. Every change ships with <code>% bibtidy:</code> URLs for verification &mdash; treat the output as a reviewed first draft, not a final answer.</p>
 
 </div>
 
@@ -607,7 +660,16 @@
 
 </div>
 
+</div>
+
 <script>
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="' + id + '"]').classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
 function copyCode(btn) {
   const code = btn.previousElementSibling.textContent;
   navigator.clipboard.writeText(code).then(() => {

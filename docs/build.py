@@ -287,13 +287,12 @@ def build_html(cards_html: str) -> str:
   }}
 
   .header {{
-    border-bottom: 1px solid var(--border);
-    padding: 2rem 0;
+    padding: 2rem 0 0.5rem;
     text-align: center;
   }}
 
   .header h1 {{ font-size: 2rem; font-weight: 600; margin-bottom: 0.5rem; }}
-  .header p {{ color: var(--text-muted); font-size: 1.1rem; }}
+  .header p {{ color: var(--text-muted); }}
 
   .github-link {{
     display: inline-flex;
@@ -455,6 +454,43 @@ def build_html(cards_html: str) -> str:
   .stats .del-count {{ color: var(--del-line); }}
 
   .diff-body a {{ color: var(--accent); }}
+
+  /* Tabs */
+  .tabs {{
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+  }}
+
+  .tab-btn {{
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0.6rem 1.25rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }}
+
+  .tab-btn:hover {{
+    color: var(--text);
+  }}
+
+  .tab-btn.active {{
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }}
+
+  .tab-panel {{
+    display: none;
+  }}
+
+  .tab-panel.active {{
+    display: block;
+  }}
 </style>
 </head>
 <body>
@@ -471,15 +507,20 @@ def build_html(cards_html: str) -> str:
 </div>
 
 <div class="container">
-<p class="intro">bibtidy cross-checks BibTeX entries against Google Scholar, CrossRef, and conference/journal sites. It upgrades arXiv/bioRxiv preprints to published versions (even when the title changed upon publication), corrects metadata (authors, pages, venues), and flags duplicate entries.</p>
 
-<p class="intro"><strong>Note:</strong> bibtidy's output is non-deterministic. The same <code>.bib</code> file can yield different fixes across runs, and Claude Code and Codex may reach different conclusions on the same entry, due to variability in search results, LLM sampling, and differences between the two agents' underlying models. Every change ships with <code>% bibtidy:</code> URLs for verification &mdash; treat the output as a reviewed first draft, not a final answer.</p>
+<div class="tabs">
+  <button class="tab-btn active" data-tab="bibtidy" onclick="switchTab('bibtidy')">bibtidy</button>
+</div>
+
+<div id="tab-bibtidy" class="tab-panel active">
 
 <div class="section">
   <div class="demo">
     <img src="bibtidy_demo.gif" alt="bibtidy demo" width="1600" height="1200">
   </div>
 </div>
+
+<p class="intro">bibtidy cross-checks BibTeX entries against Google Scholar, CrossRef, and conference/journal sites. It upgrades arXiv/bioRxiv preprints to published versions (even when the title changed upon publication), corrects metadata (authors, pages, venues), and flags duplicate entries.</p>
 
 <div class="section">
   <h2 class="section-title">Install</h2>
@@ -522,6 +563,18 @@ def build_html(cards_html: str) -> str:
 </div>
 
 <div class="section">
+  <h2 class="section-title">Usage</h2>
+
+  <div class="install-step">
+    <p>In both Claude Code and Codex, use:</p>
+    <div class="code-block"><code>/bibtidy refs.bib</code><button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <p class="intro">bibtidy's output is non-deterministic. The same <code>.bib</code> file can yield different fixes across runs, and Claude Code and Codex may reach different conclusions on the same entry, due to variability in search results, LLM sampling, and differences between the two agents' underlying models. Every change ships with <code>% bibtidy:</code> URLs for verification &mdash; treat the output as a reviewed first draft, not a final answer.</p>
+
+</div>
+
+<div class="section">
   <h2 class="section-title">Examples</h2>
 
 {cards_html}
@@ -530,7 +583,16 @@ def build_html(cards_html: str) -> str:
 
 </div>
 
+</div>
+
 <script>
+function switchTab(id) {{
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="' + id + '"]').classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}}
+
 function copyCode(btn) {{
   const code = btn.previousElementSibling.textContent;
   navigator.clipboard.writeText(code).then(() => {{
@@ -554,11 +616,7 @@ def main() -> None:
 
     input_entries = {e["key"]: e for e in parse_entries(input_text)}
     expected_entries = parse_entries(expected_text)
-
-    # Build a lookup for expected entries
-    expected_by_key = {}
-    for e in expected_entries:
-        expected_by_key[e["key"]] = e
+    expected_by_key = {e["key"]: e for e in expected_entries}
 
     # Generate diff cards, separating by category
     notfound_cards = []

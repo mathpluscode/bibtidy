@@ -55,48 +55,45 @@ Start a new Codex session afterwards so the refreshed `SKILL.md` is loaded into 
 
 ## bibtidy
 
-```text
-Use bibtidy to validate and fix refs.bib
-```
+In both Claude Code and Codex, use:
 
-Or in Claude Code, use the slash command: `/bibtidy refs.bib`
+```text
+/bibtidy refs.bib
+```
 
 bibtidy verifies each entry against [Google Scholar](https://scholar.google.com/) and [CrossRef](https://search.crossref.org/), fixes errors, and upgrades stale preprints to published versions. Every change includes the original entry commented out above so you can compare or revert, plus one or more `% bibtidy:` URL lines for verification. We recommend using git to track changes. If using [Overleaf](https://www.overleaf.com/), this can be done with [git sync](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization). To remove bibtidy comments after review, ask your agent to remove all `bibtidy` comments from the file.
 
-bibtidy's output is non-deterministic: the same `.bib` file can yield different fixes across runs, and Claude Code and Codex may reach different conclusions on the same entry. See the [FAQ](#bibtidy) for why, and always verify changes via the `% bibtidy:` URLs before accepting them.
+bibtidy's output is non-deterministic: the same `.bib` file can yield different fixes across runs, and Claude Code and Codex may reach different conclusions on the same entry. See the FAQ section below for more on why, and always verify changes via the `% bibtidy:` URLs before accepting them.
 
 Note that bibtidy assumes standard brace-style BibTeX like `@article{...}`. Parenthesized forms like `@article(...)` are not supported. Special blocks such as `@string`, `@preamble`, and `@comment` are ignored by the parser.
 
 ### How it works
 
-bibtidy walks each entry through a bounded state machine. Every entry has a **web-search budget of 1**, spent at most once across two possible waves:
+Each entry goes through the following pipeline. A web search is used at most once per entry to keep runs fast. Each entry ends in one of four states: Clean (no change, no comment), Fix (patch applied with URLs + explanation), Not found (hallucinated, entry commented out), or Review (budget spent, entry unchanged, comment added for human attention).
 
 ```mermaid
-flowchart TD
-    P1["Phase 1: duplicates.py (exact/subset, lossless)"]
-    P2["Phase 2: compare.py fetches CrossRef candidates"]
-    HAS{"candidates?"}
-    WA["Wave A web search<br/>(mandatory, budget spent)"]
-    P3{"Phase 3: agent decides per entry"}
-    BUDGET{"budget spent?"}
-    WB["Wave B web search<br/>(budget spent)"]
-    DECIDE2["decide again with combined info"]
-    REVIEW["add '% bibtidy: REVIEW' comment<br/>with URLs, bib entry unchanged"]
-    PATCH["build fix patch (or no-op)"]
-    P4["Phase 4: duplicates.py (post-fix)<br/>+ manual near-duplicate review"]
+flowchart LR
+    P1["Deduplicate"]
+    P2["Query CrossRef"]
+    HAS{"Found?"}
+    WA["Web search"]
+    P3{"Confident?"}
+    BUDGET{"Web searched?"}
+    WB["Web search"]
+    PATCH["Patch or no-op"]
+    REVIEW["Flag for review"]
+    P4["Post-fix deduplicate"]
 
     P1 --> P2 --> HAS
-    HAS -- yes --> P3
-    HAS -- no --> WA --> P3
-    P3 -- confident --> PATCH
-    P3 -- not confident --> BUDGET
-    BUDGET -- no --> WB --> DECIDE2 --> PATCH
-    BUDGET -- yes --> REVIEW
+    HAS -- Y --> P3
+    HAS -- N --> WA --> P3
+    P3 -- Y --> PATCH
+    P3 -- N --> BUDGET
+    BUDGET -- N --> WB --> PATCH
+    BUDGET -- Y --> REVIEW
     PATCH --> P4
     REVIEW --> P4
 ```
-
-Each entry ends in one of four states: **Clean** (no change, no comment), **Fix** (patch applied with URLs + explanation), **Not found** (hallucinated, entry commented out), or **Review** (budget spent, entry unchanged, comment added for human attention).
 
 ### Examples
 

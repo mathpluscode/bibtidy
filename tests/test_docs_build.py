@@ -10,6 +10,7 @@ _SPEC = spec_from_file_location("docs_build", _MODULE_PATH)
 assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_MODULE)
+build_html = _MODULE.build_html
 linkify = _MODULE.linkify
 
 
@@ -23,3 +24,9 @@ def test_linkify_escapes_non_url_text() -> None:
     result = linkify('5 < 6 and "ok" https://example.com?a=1&b=2')
     assert "5 &lt; 6 and &quot;ok&quot;" in result
     assert 'href="https://example.com?a=1&amp;b=2"' in result
+
+
+def test_build_html_includes_shared_usage_example() -> None:
+    result = build_html("")
+    assert "<p>In both Claude Code and Codex, use:</p>" in result
+    assert "<code>/bibtidy refs.bib</code>" in result
